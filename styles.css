@@ -1,16 +1,16 @@
 :root {
-  --bg-app: #f8fafc;
+  --bg-app: #ffebaf;
   --bg-surface: #ffffff;
-  --bg-sidebar: #0f172a;
-  --text-sidebar: #94a3b8;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
+  --bg-sidebar: #4C9DB0;
+  --text-sidebar: #ffffff;
+  --text-primary: #4C9DB0;
+  --text-secondary: #000000;
+  --primary: #4C9DB0;
+  --primary-hover: #004675;
   --accent-green: #10b981;
   --accent-orange: #f59e0b;
   --accent-red: #ef4444;
-  --border-color: #e2e8f0;
+  --border-color: #000000;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -90,17 +90,17 @@ body {
 
 .nav-btn:hover {
   background-color: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  color: #ffebaf;
 }
 
 .nav-btn.active {
   background-color: var(--primary);
-  color: #fff;
+  color: #ffebaf;
 }
 
 /* ================= BARRA DE PROGRESO GLOBAL ================= */
 .global-progress-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0);
   padding: 16px;
   border-radius: var(--radius-md);
   margin-bottom: 16px;
@@ -116,7 +116,7 @@ body {
 }
 
 .progress-bar-bg {
-  background-color: #e2e8f0;
+  background-color: #ffebaf;
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
@@ -124,11 +124,11 @@ body {
 }
 
 .global-progress-card .progress-bar-bg {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: #ffebaf69;
 }
 
 .progress-bar-fill {
-  background: linear-gradient(90deg, #10b981, #06b6d4);
+  background: linear-gradient(90deg, #ffebaf, #ffebaf);
   height: 100%;
   border-radius: 999px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -152,7 +152,7 @@ body {
 }
 
 .sidebar-footer .btn-text:hover {
-  color: #fff;
+  color: #ffebaf;
 }
 
 /* ================= CONTENIDO PRINCIPAL ================= */
