@@ -1,0 +1,10 @@
+{
+  "name": "campusflow",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve . -p 5500"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0"
+  }
+}

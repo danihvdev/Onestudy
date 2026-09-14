@@ -1,6 +1,12 @@
 # Vercel
 .vercel
 
+# Dependencies
+node_modules/
+
+# Credenciales locales de Firebase (no subir a GitHub)
+firebase-config.js
+
 # Logs y temporales
 *.log
 .DS_Store

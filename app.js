@@ -101,8 +101,29 @@ const defaultInitialData = {
 };
 
 // ================= PERSISTENCIA =================
-function loadData() {
-  const saved = localStorage.getItem("campusflow_data");
+function dataStorageKey() {
+  const user =
+    window.FirebaseSync && window.FirebaseSync.getUser
+      ? window.FirebaseSync.getUser()
+      : null;
+  return user ? "campusflow_data_" + user.uid : "campusflow_data";
+}
+
+function persistLocalCopy() {
+  localStorage.setItem(
+    dataStorageKey(),
+    JSON.stringify({
+      projects: AppState.projects,
+      tasks: AppState.tasks,
+      events: AppState.events,
+      classes: AppState.classes,
+    }),
+  );
+}
+
+function loadData(options = {}) {
+  const allowDefaults = options.allowDefaults !== false;
+  const saved = localStorage.getItem(dataStorageKey());
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -115,7 +136,15 @@ function loadData() {
       console.error("Error al cargar datos:", e);
     }
   }
-  // Cargar valores de muestra si no hay nada guardado
+
+  if (!allowDefaults) {
+    AppState.projects = [];
+    AppState.tasks = [];
+    AppState.events = [];
+    AppState.classes = [];
+    return;
+  }
+
   AppState.projects = defaultInitialData.projects;
   AppState.tasks = defaultInitialData.tasks;
   AppState.events = defaultInitialData.events;
@@ -124,24 +153,69 @@ function loadData() {
 }
 
 function saveData() {
-  localStorage.setItem(
-    "campusflow_data",
-    JSON.stringify({
-      projects: AppState.projects,
-      tasks: AppState.tasks,
-      events: AppState.events,
-      classes: AppState.classes,
-    }),
-  );
+  persistLocalCopy();
+
+  if (window.FirebaseSync && window.FirebaseSync.saveToCloud) {
+    window.FirebaseSync.saveToCloud(AppState);
+  }
 }
 
-// ================= INICIALIZACIÓN =================
-document.addEventListener("DOMContentLoaded", () => {
-  loadData();
-  setupNavigation();
-  setupModals();
+window.getCurrentAppState = function () {
+  return {
+    projects: AppState.projects,
+    tasks: AppState.tasks,
+    events: AppState.events,
+    classes: AppState.classes,
+  };
+};
+
+window.loadExternalDataIntoApp = function (cloudData) {
+  if (!cloudData) return;
+  AppState.projects = cloudData.projects || [];
+  AppState.tasks = cloudData.tasks || [];
+  AppState.events = cloudData.events || [];
+  AppState.classes = cloudData.classes || [];
+  persistLocalCopy();
+
+  if (typeof setupProjectFilter === "function") {
+    setupProjectFilter();
+    renderAll();
+  }
+};
+
+window.onUserLoggedOut = function () {
+  loadData({ allowDefaults: true });
+  if (typeof setupProjectFilter === "function") {
+    setupProjectFilter();
+    renderAll();
+  }
+};
+
+function startAppWithAuthAwareData() {
+  const loggedIn = window.FirebaseSync && window.FirebaseSync.getUser();
+  loadData({ allowDefaults: !loggedIn });
   setupProjectFilter();
   renderAll();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupNavigation();
+  setupModals();
+
+  if (window.FirebaseSync && window.FirebaseSync.hasResolvedAuth()) {
+    startAppWithAuthAwareData();
+    return;
+  }
+
+  const fallback = setTimeout(startAppWithAuthAwareData, 2500);
+  window.addEventListener(
+    "campusflow-auth-ready",
+    () => {
+      clearTimeout(fallback);
+      startAppWithAuthAwareData();
+    },
+    { once: true },
+  );
 });
 
 function renderAll() {
@@ -860,6 +934,103 @@ function setupModals() {
     }
     closeModal("classModal");
   });
+
+  // Modal Autenticación y Sincronización
+  const btnOpenAuthModal = document.getElementById("btnOpenAuthModal");
+  if (btnOpenAuthModal) {
+    btnOpenAuthModal.addEventListener("click", () => {
+      document.getElementById("authEmailForm").reset();
+      document.getElementById("authErrorMessage").style.display = "none";
+      openModal("authModal");
+    });
+  }
+
+  let isRegisterMode = false;
+  const btnToggleAuthMode = document.getElementById("btnToggleAuthMode");
+  const authModalTitle = document.getElementById("authModalTitle");
+  const btnAuthSubmit = document.getElementById("btnAuthSubmit");
+
+  if (btnToggleAuthMode) {
+    btnToggleAuthMode.addEventListener("click", () => {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById("authErrorMessage").style.display = "none";
+      if (isRegisterMode) {
+        authModalTitle.textContent = "Crear Cuenta";
+        btnAuthSubmit.textContent = "Registrarse";
+        btnToggleAuthMode.textContent = "¿Ya tienes cuenta? Inicia sesión";
+      } else {
+        authModalTitle.textContent = "Iniciar Sesión";
+        btnAuthSubmit.textContent = "Iniciar Sesión";
+        btnToggleAuthMode.textContent = "¿No tienes cuenta? Regístrate";
+      }
+    });
+  }
+
+  const btnGoogleSignIn = document.getElementById("btnGoogleSignIn");
+  if (btnGoogleSignIn) {
+    btnGoogleSignIn.addEventListener("click", async () => {
+      const errorMsg = document.getElementById("authErrorMessage");
+      errorMsg.style.display = "none";
+      if (!window.FirebaseSync) {
+        errorMsg.textContent = "Cargando servicio de conexión...";
+        errorMsg.style.display = "block";
+        return;
+      }
+      const res = await window.FirebaseSync.loginWithGoogle();
+      if (res.success) {
+        closeModal("authModal");
+      } else {
+        errorMsg.textContent = res.error;
+        errorMsg.style.display = "block";
+      }
+    });
+  }
+
+  const authEmailForm = document.getElementById("authEmailForm");
+  if (authEmailForm) {
+    authEmailForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const errorMsg = document.getElementById("authErrorMessage");
+      errorMsg.style.display = "none";
+
+      if (!window.FirebaseSync) {
+        errorMsg.textContent = "El servicio de conexión aún no está listo.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.textContent = "Procesando...";
+
+      let res;
+      if (isRegisterMode) {
+        res = await window.FirebaseSync.registerWithEmail(email, password);
+      } else {
+        res = await window.FirebaseSync.loginWithEmail(email, password);
+      }
+
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.textContent = isRegisterMode ? "Registrarse" : "Iniciar Sesión";
+
+      if (res.success) {
+        closeModal("authModal");
+      } else {
+        errorMsg.textContent = res.error;
+        errorMsg.style.display = "block";
+      }
+    });
+  }
+
+  const btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      if (window.FirebaseSync) {
+        await window.FirebaseSync.logout();
+      }
+    });
+  }
 }
 
 function openEventModal(defaultDate) {
