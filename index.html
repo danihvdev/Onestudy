@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organizador Académico</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Google Fonts para tipografía limpia y moderna -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Barra lateral / Navegación -->
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-icon">🎓</span>
+          <h2>CampusFlow</h2>
+        </div>
+
+        <nav class="nav-menu">
+          <button class="nav-btn active" data-target="kanban-view">
+            <span class="icon">📋</span> Proyectos & Kanban
+          </button>
+          <button class="nav-btn" data-target="calendar-view">
+            <span class="icon">📅</span> Calendario
+          </button>
+          <button class="nav-btn" data-target="schedule-view">
+            <span class="icon">🕒</span> Horario de Clases
+          </button>
+        </nav>
+
+        <!-- Resumen global de progreso -->
+        <div class="global-progress-card">
+          <div class="progress-title-row">
+            <span>Progreso Total</span>
+            <strong id="globalProgressPercent">0%</strong>
+          </div>
+          <div class="progress-bar-bg">
+            <div
+              class="progress-bar-fill"
+              id="globalProgressBar"
+              style="width: 0%"
+            ></div>
+          </div>
+          <p class="progress-subtext" id="globalProgressCount">
+            0 de 0 tareas hechas
+          </p>
+        </div>
+
+        <div class="sidebar-footer">
+          <button class="btn-text" id="btnExportData">💾 Exportar Datos</button>
+        </div>
+      </aside>
+
+      <!-- Contenido Principal -->
+      <main class="main-content">
+        <!-- ================= 1. VISTA KANBAN & PROYECTOS ================= -->
+        <section id="kanban-view" class="view-section active">
+          <header class="section-header">
+            <div>
+              <h1>Tablero de Proyectos</h1>
+              <p class="subtitle">
+                Gestiona las entregas y observa el avance en tiempo real.
+              </p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" id="btnNewProject">
+                + Nuevo Proyecto
+              </button>
+              <button class="btn btn-primary" id="btnNewTask">
+                + Nueva Tarea
+              </button>
+            </div>
+          </header>
+
+          <!-- Filtro de proyectos y barra de avance del proyecto actual -->
+          <div class="project-selector-banner">
+            <div class="selector-group">
+              <label for="projectFilter">Filtrar por proyecto:</label>
+              <select id="projectFilter">
+                <option value="all">Todos los proyectos</option>
+              </select>
+              <button
+                type="button"
+                id="btnDeleteProject"
+                class="btn btn-sm btn-danger"
+                style="display: none;"
+                title="Eliminar este proyecto"
+              >
+                🗑️ Borrar proyecto
+              </button>
+            </div>
+            <div class="active-project-progress">
+              <span id="activeProjectLabel">Avance del filtro:</span>
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  id="filteredProgressBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <span id="filteredProgressText">0%</span>
+            </div>
+          </div>
+
+          <!-- Columnas Kanban -->
+          <div class="kanban-board">
+            <!-- Columna: Por Hacer -->
+            <div class="kanban-column" data-status="todo">
+              <div class="column-header">
+                <span class="column-dot dot-todo"></span>
+                <h3>Por Hacer</h3>
+                <span class="badge" id="count-todo">0</span>
+              </div>
+              <div
+                class="kanban-cards"
+                id="cards-todo"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'todo')"
+              ></div>
+            </div>
+
+            <!-- Columna: En Progreso -->
+            <div class="kanban-column" data-status="in-progress">
+              <div class="column-header">
+                <span class="column-dot dot-progress"></span>
+                <h3>En Progreso</h3>
+                <span class="badge" id="count-in-progress">0</span>
+              </div>
+              <div
+                class="kanban-cards"
+                id="cards-in-progress"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'in-progress')"
+              ></div>
+            </div>
+
+            <!-- Columna: Completado -->
+            <div class="kanban-column" data-status="done">
+              <div class="column-header">
+                <span class="column-dot dot-done"></span>
+                <h3>Completado</h3>
+                <span class="badge" id="count-done">0</span>
+              </div>
+              <div
+                class="kanban-cards"
+                id="cards-done"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'done')"
+              ></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 2. VISTA CALENDARIO ================= -->
+        <section id="calendar-view" class="view-section">
+          <header class="section-header">
+            <div>
+              <h1>Calendario Académico</h1>
+              <p class="subtitle">
+                Fechas de exámenes, entregas y recordatorios importantes.
+              </p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-primary" id="btnNewEvent">
+                + Añadir Evento
+              </button>
+            </div>
+          </header>
+
+          <div class="calendar-controls">
+            <button class="btn-icon" id="prevMonthBtn">&lt;</button>
+            <h2 id="calendarMonthYear">Mes Año</h2>
+            <button class="btn-icon" id="nextMonthBtn">&gt;</button>
+            <button class="btn btn-secondary btn-sm" id="todayBtn">Hoy</button>
+          </div>
+
+          <div class="calendar-grid-header">
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span
+            ><span>Vie</span><span>Sáb</span><span>Dom</span>
+          </div>
+          <div class="calendar-grid" id="calendarDaysGrid"></div>
+        </section>
+
+        <!-- ================= 3. VISTA HORARIO ================= -->
+        <section id="schedule-view" class="view-section">
+          <header class="section-header">
+            <div>
+              <h1>Horario de Clases</h1>
+              <p class="subtitle">
+                Planifica tu semana académica de lunes a viernes.
+              </p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-primary" id="btnNewClass">
+                + Añadir Asignatura
+              </button>
+            </div>
+          </header>
+
+          <div class="timetable-container">
+            <div class="timetable-grid" id="timetableGrid">
+              <!-- Renderizado dinámico desde app.js -->
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ================= MODALES ================= -->
+
+    <!-- Modal Tarea -->
+    <div class="modal" id="taskModal">
+      <div class="modal-content">
+        <h3 id="taskModalTitle">Nueva Tarea</h3>
+        <form id="taskForm">
+          <input type="hidden" id="taskId" />
+          <div class="form-group">
+            <label for="taskTitle">Título de la tarea:</label>
+            <input
+              type="text"
+              id="taskTitle"
+              required
+              placeholder="Ej: Implementar base de datos..."
+            />
+          </div>
+          <div class="form-group">
+            <label for="taskProject">Proyecto / Asignatura:</label>
+            <select id="taskProject" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskPriority">Prioridad:</label>
+              <select id="taskPriority">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="taskDueDate">Fecha límite:</label>
+              <input type="date" id="taskDueDate" />
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('taskModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Proyecto -->
+    <div class="modal" id="projectModal">
+      <div class="modal-content">
+        <h3>Gestión de Proyectos</h3>
+        <form id="projectForm">
+          <h4 class="modal-subtitle">Crear Nuevo Proyecto</h4>
+          <div class="form-group">
+            <label for="projectName">Nombre del Proyecto:</label>
+            <input
+              type="text"
+              id="projectName"
+              required
+              placeholder="Ej: Práctica Final Redes"
+            />
+          </div>
+          <div class="form-group">
+            <label for="projectColor">Color identificador:</label>
+            <input type="color" id="projectColor" value="#4f46e5" />
+          </div>
+          <div class="modal-buttons modal-buttons-compact">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('projectModal')"
+            >
+              Cerrar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              + Crear Proyecto
+            </button>
+          </div>
+        </form>
+
+        <div class="existing-projects-section">
+          <h4 class="modal-subtitle">Proyectos Existentes</h4>
+          <div id="projectListModal" class="project-list-modal">
+            <!-- Cargado dinámicamente con opción de eliminar -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detalles del Día -->
+    <div class="modal" id="dayDetailsModal">
+      <div class="modal-content day-modal-content">
+        <div class="day-modal-header">
+          <div>
+            <h3 id="dayModalDateTitle">Detalles del Día</h3>
+            <p class="subtitle" id="dayModalDateSubtitle">Resumen de clases y eventos</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close-icon"
+            onclick="closeModal('dayDetailsModal')"
+            title="Cerrar"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- 1. Vista previa del Horario de Clases -->
+        <div class="day-section">
+          <div class="day-section-title">
+            <span>🕒 Horario de Clases</span>
+            <span class="badge" id="dayClassesCountBadge">0 clases</span>
+          </div>
+          <div id="dayClassesList" class="day-classes-list">
+            <!-- Renderizado dinámico de las clases del día -->
+          </div>
+        </div>
+
+        <!-- 2. Eventos del Día -->
+        <div class="day-section">
+          <div class="day-section-title">
+            <span>📌 Eventos y Entregas</span>
+            <span class="badge" id="dayEventsCountBadge">0 eventos</span>
+          </div>
+          <div id="dayEventsList" class="day-events-list">
+            <!-- Renderizado dinámico de los eventos del día -->
+          </div>
+        </div>
+
+        <!-- 3. Formulario Rápido para Añadir Evento -->
+        <div class="day-section day-add-event-section">
+          <div class="day-section-title">
+            <span>➕ Añadir Evento a este día</span>
+          </div>
+          <form id="dayQuickEventForm" class="day-quick-event-form">
+            <input type="hidden" id="dayQuickEventDate" />
+            <div class="form-row-quick">
+              <input
+                type="text"
+                id="dayQuickEventTitle"
+                required
+                placeholder="Nombre del evento o entrega..."
+              />
+              <select id="dayQuickEventType">
+                <option value="examen">Examen</option>
+                <option value="proyecto">Entrega Proyecto</option>
+                <option value="otro">Otro</option>
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm">
+                + Añadir
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 16px;">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeModal('dayDetailsModal')"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Evento de Calendario -->
+    <div class="modal" id="eventModal">
+      <div class="modal-content">
+        <h3 id="eventModalTitle">Nuevo Evento</h3>
+        <form id="eventForm">
+          <input type="hidden" id="eventId" />
+          <div class="form-group">
+            <label for="eventTitle">Nombre del evento:</label>
+            <input
+              type="text"
+              id="eventTitle"
+              required
+              placeholder="Ej: Examen Parcial de Álgebra"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventDate">Fecha:</label>
+              <input type="date" id="eventDate" required />
+            </div>
+            <div class="form-group">
+              <label for="eventType">Tipo:</label>
+              <select id="eventType">
+                <option value="examen">Examen</option>
+                <option value="proyecto">Entrega Proyecto</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('eventModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Guardar Evento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Clase Horario -->
+    <div class="modal" id="classModal">
+      <div class="modal-content">
+        <h3>Añadir Asignatura al Horario</h3>
+        <form id="classForm">
+          <input type="hidden" id="classId" />
+          <div class="form-group">
+            <label for="className">Asignatura:</label>
+            <input
+              type="text"
+              id="className"
+              required
+              placeholder="Ej: Algoritmos y Estructuras"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classRoom">Aula / Lugar:</label>
+              <input
+                type="text"
+                id="classRoom"
+                placeholder="Ej: Aula 2.3 / Lab 1"
+              />
+            </div>
+            <div class="form-group">
+              <label for="classDay">Día:</label>
+              <select id="classDay" required>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classStartTime">Hora Inicio:</label>
+              <input type="time" id="classStartTime" required value="09:00" />
+            </div>
+            <div class="form-group">
+              <label for="classEndTime">Hora Fin:</label>
+              <input type="time" id="classEndTime" required value="11:00" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="classColor">Color de tarjeta:</label>
+            <input type="color" id="classColor" value="#0284c7" />
+          </div>
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('classModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">Guardar Clase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
