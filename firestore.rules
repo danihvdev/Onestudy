@@ -1,8 +1,57 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Nada es público: si no hay regla que lo permita, se deniega.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Un documento por cuenta: users/{uid}
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId) && isValidUserDoc(request.resource.data);
+
+      allow update: if isOwner(userId)
+        && isValidUserDoc(request.resource.data)
+        && createdAtUnchanged();
+
+      allow delete: if isOwner(userId);
     }
   }
+}
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isOwner(userId) {
+  return isSignedIn() && request.auth.uid == userId;
+}
+
+function createdAtUnchanged() {
+  return !("createdAt" in resource.data)
+    || request.resource.data.createdAt == resource.data.createdAt;
+}
+
+function isValidUserDoc(data) {
+  return data.keys().hasOnly([
+      "projects",
+      "tasks",
+      "events",
+      "classes",
+      "createdAt",
+      "updatedAt"
+    ])
+    && data.projects is list
+    && data.tasks is list
+    && data.events is list
+    && data.classes is list
+    && data.projects.size() <= 80
+    && data.tasks.size() <= 400
+    && data.events.size() <= 400
+    && data.classes.size() <= 80
+    && data.updatedAt is timestamp
+    && (!("createdAt" in data) || data.createdAt is timestamp);
 }
