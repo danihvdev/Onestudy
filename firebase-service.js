@@ -157,7 +157,10 @@ onAuthStateChanged(auth, async (user) => {
     } else if (window.getCurrentAppState) {
       const localData = snapshotState(window.getCurrentAppState());
       await setDoc(userRef, {
-        ...localData,
+        projects: localData.projects || [],
+        tasks: localData.tasks || [],
+        events: localData.events || [],
+        classes: localData.classes || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -167,6 +170,7 @@ onAuthStateChanged(auth, async (user) => {
   } catch (err) {
     console.error("Error al cargar datos desde Firestore:", err);
     setSyncStatus("error");
+    cloudReady = true; // <-- IMPORTANTE: Permitir continuar aunque falle la nube para no bloquear la UI
   }
 
   unsubscribeFirestore = onSnapshot(
