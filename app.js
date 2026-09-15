@@ -1,576 +1,1057 @@
-// ================= ESTADO DE LA APLICACIÓN =================
-let state = {
-  projects: JSON.parse(localStorage.getItem("studyflow_projects")) || [
-    { id: "p1", name: "Matemáticas", color: "#4C9DB0" },
-    { id: "p2", name: "Programación", color: "#10b981" },
+/**
+ * onestudy - Organizador Académico
+ * Arquitectura modular y extensible
+ */
+
+// Estado global de la aplicación
+const AppState = {
+  projects: [],
+  tasks: [],
+  events: [],
+  classes: [],
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  filterProject: "all",
+};
+
+// Datos de ejemplo para primera carga
+const defaultInitialData = {
+  projects: [
+    { id: "proj-1", name: "Desarrollo Web", color: "#4f46e5" },
+    { id: "proj-2", name: "Sistemas Operativos", color: "#0284c7" },
+    { id: "proj-3", name: "Matemática Discreta", color: "#8b5cf6" },
   ],
-  tasks: JSON.parse(localStorage.getItem("studyflow_tasks")) || [
+  tasks: [
     {
-      id: "t1",
-      title: "Repasar límites",
-      projectId: "p1",
+      id: "task-1",
+      title: "Diseñar arquitectura de base de datos",
+      projectId: "proj-1",
+      status: "done",
       priority: "alta",
-      status: "todo",
+      dueDate: "2026-09-20",
     },
     {
-      id: "t2",
-      title: "Crear componentes UI",
-      projectId: "p2",
+      id: "task-2",
+      title: "Implementar interfaz con CSS grid",
+      projectId: "proj-1",
+      status: "in-progress",
       priority: "media",
-      status: "progress",
+      dueDate: "2026-09-25",
+    },
+    {
+      id: "task-3",
+      title: "Práctica de concurrencia y semáforos",
+      projectId: "proj-2",
+      status: "todo",
+      priority: "alta",
+      dueDate: "2026-10-02",
+    },
+    {
+      id: "task-4",
+      title: "Ejercicios de grafos y árboles",
+      projectId: "proj-3",
+      status: "todo",
+      priority: "baja",
+      dueDate: "2026-09-30",
     },
   ],
-  events: JSON.parse(localStorage.getItem("studyflow_events")) || [
+  events: [
     {
-      id: "e1",
-      title: "Examen de Cálculo",
-      date: "2026-06-15",
+      id: "ev-1",
+      title: "Examen Parcial SO",
+      date: "2026-09-28",
       type: "examen",
     },
-  ],
-  classes: JSON.parse(localStorage.getItem("studyflow_classes")) || [
     {
-      id: "c1",
-      name: "Álgebra",
-      day: 1,
-      time: "08:00",
-      room: "Aula 101",
-      color: "#4C9DB0",
+      id: "ev-2",
+      title: "Entrega Sprint 1 Web",
+      date: "2026-09-25",
+      type: "proyecto",
     },
   ],
-  timetableHours: JSON.parse(localStorage.getItem("studyflow_hours")) || [
+  classes: [
+    {
+      id: "c-1",
+      name: "Desarrollo Web",
+      room: "Lab 3",
+      day: 1,
+      startTime: "09:00",
+      endTime: "11:00",
+      color: "#4f46e5",
+    },
+    {
+      id: "c-2",
+      name: "Sistemas Operativos",
+      room: "Aula 2.1",
+      day: 2,
+      startTime: "11:30",
+      endTime: "13:30",
+      color: "#0284c7",
+    },
+    {
+      id: "c-3",
+      name: "Matemática Discreta",
+      room: "Aula 1.4",
+      day: 3,
+      startTime: "09:00",
+      endTime: "11:00",
+      color: "#8b5cf6",
+    },
+  ],
+};
+
+// ================= PERSISTENCIA =================
+function dataStorageKey() {
+  const user =
+    window.FirebaseSync && window.FirebaseSync.getUser
+      ? window.FirebaseSync.getUser()
+      : null;
+  return user ? "campusflow_data_" + user.uid : "campusflow_data";
+}
+
+function persistLocalCopy() {
+  localStorage.setItem(
+    dataStorageKey(),
+    JSON.stringify({
+      projects: AppState.projects,
+      tasks: AppState.tasks,
+      events: AppState.events,
+      classes: AppState.classes,
+    }),
+  );
+}
+
+function loadData(options = {}) {
+  const allowDefaults = options.allowDefaults !== false;
+  const saved = localStorage.getItem(dataStorageKey());
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      AppState.projects = parsed.projects || [];
+      AppState.tasks = parsed.tasks || [];
+      AppState.events = parsed.events || [];
+      AppState.classes = parsed.classes || [];
+      return;
+    } catch (e) {
+      console.error("Error al cargar datos:", e);
+    }
+  }
+
+  if (!allowDefaults) {
+    AppState.projects = [];
+    AppState.tasks = [];
+    AppState.events = [];
+    AppState.classes = [];
+    return;
+  }
+
+  AppState.projects = defaultInitialData.projects;
+  AppState.tasks = defaultInitialData.tasks;
+  AppState.events = defaultInitialData.events;
+  AppState.classes = defaultInitialData.classes;
+  saveData();
+}
+
+function saveData() {
+  persistLocalCopy();
+
+  if (window.FirebaseSync && window.FirebaseSync.saveToCloud) {
+    window.FirebaseSync.saveToCloud(AppState);
+  }
+}
+
+window.getCurrentAppState = function () {
+  return {
+    projects: AppState.projects,
+    tasks: AppState.tasks,
+    events: AppState.events,
+    classes: AppState.classes,
+  };
+};
+
+window.loadExternalDataIntoApp = function (cloudData) {
+  if (!cloudData) return;
+  AppState.projects = cloudData.projects || [];
+  AppState.tasks = cloudData.tasks || [];
+  AppState.events = cloudData.events || [];
+  AppState.classes = cloudData.classes || [];
+  persistLocalCopy();
+
+  if (typeof setupProjectFilter === "function") {
+    setupProjectFilter();
+    renderAll();
+  }
+};
+
+window.onUserLoggedOut = function () {
+  loadData({ allowDefaults: true });
+  if (typeof setupProjectFilter === "function") {
+    setupProjectFilter();
+    renderAll();
+  }
+};
+
+function startAppWithAuthAwareData() {
+  const loggedIn = window.FirebaseSync && window.FirebaseSync.getUser();
+  loadData({ allowDefaults: !loggedIn });
+  setupProjectFilter();
+  renderAll();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupNavigation();
+  setupModals();
+
+  if (window.FirebaseSync && window.FirebaseSync.hasResolvedAuth()) {
+    startAppWithAuthAwareData();
+    return;
+  }
+
+  const fallback = setTimeout(startAppWithAuthAwareData, 2500);
+  window.addEventListener(
+    "campusflow-auth-ready",
+    () => {
+      clearTimeout(fallback);
+      startAppWithAuthAwareData();
+    },
+    { once: true },
+  );
+});
+
+function renderAll() {
+  renderKanban();
+  renderProgress();
+  renderCalendar();
+  renderTimetable();
+}
+
+// ================= NAVEGACIÓN =================
+function setupNavigation() {
+  const navBtns = document.querySelectorAll(".nav-btn");
+  navBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      navBtns.forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".view-section")
+        .forEach((s) => s.classList.remove("active"));
+
+      btn.classList.add("active");
+      const targetId = btn.getAttribute("data-target");
+      document.getElementById(targetId).classList.add("active");
+    });
+  });
+
+  // Exportar datos
+  document.getElementById("btnExportData").addEventListener("click", () => {
+    const jsonStr = JSON.stringify(AppState, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `organizador_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+  });
+}
+
+// ================= KANBAN & PROGRESO =================
+function renderKanban() {
+  const todoContainer = document.getElementById("cards-todo");
+  const progressContainer = document.getElementById("cards-in-progress");
+  const doneContainer = document.getElementById("cards-done");
+
+  todoContainer.innerHTML = "";
+  progressContainer.innerHTML = "";
+  doneContainer.innerHTML = "";
+
+  const filteredTasks =
+    AppState.filterProject === "all"
+      ? AppState.tasks
+      : AppState.tasks.filter((t) => t.projectId === AppState.filterProject);
+
+  let countTodo = 0,
+    countProgress = 0,
+    countDone = 0;
+
+  filteredTasks.forEach((task) => {
+    const project = AppState.projects.find((p) => p.id === task.projectId) || {
+      name: "General",
+      color: "#64748b",
+    };
+    const card = document.createElement("div");
+    card.className = "kanban-card";
+    card.draggable = true;
+    card.dataset.id = task.id;
+    card.ondragstart = (e) => e.dataTransfer.setData("text/plain", task.id);
+
+    card.innerHTML = `
+      <span class="card-project-tag" style="background-color: ${project.color}">${project.name}</span>
+      <h4 class="card-title">${task.title}</h4>
+      <div class="card-footer">
+        <span class="priority-tag priority-${task.priority}">● ${task.priority}</span>
+        ${task.dueDate ? `<span>📅 ${task.dueDate}</span>` : ""}
+        <div class="card-actions">
+          ${task.status !== "done" ? `<button class="card-btn" title="Marcar completada" onclick="quickCompleteTask('${task.id}')">✔️</button>` : ""}
+          <button class="card-btn" title="Eliminar" onclick="deleteTask('${task.id}')">🗑️</button>
+        </div>
+      </div>
+    `;
+
+    if (task.status === "todo") {
+      todoContainer.appendChild(card);
+      countTodo++;
+    } else if (task.status === "in-progress") {
+      progressContainer.appendChild(card);
+      countProgress++;
+    } else if (task.status === "done") {
+      doneContainer.appendChild(card);
+      countDone++;
+    }
+  });
+
+  document.getElementById("count-todo").textContent = countTodo;
+  document.getElementById("count-in-progress").textContent = countProgress;
+  document.getElementById("count-done").textContent = countDone;
+}
+
+// Drag & Drop
+window.allowDrop = function (e) {
+  e.preventDefault();
+};
+
+window.handleDrop = function (e, newStatus) {
+  e.preventDefault();
+  const taskId = e.dataTransfer.getData("text/plain");
+  const task = AppState.tasks.find((t) => t.id === taskId);
+  if (task && task.status !== newStatus) {
+    task.status = newStatus;
+    saveData();
+    renderKanban();
+    renderProgress();
+  }
+};
+
+window.quickCompleteTask = function (taskId) {
+  const task = AppState.tasks.find((t) => t.id === taskId);
+  if (task) {
+    task.status = "done";
+    saveData();
+    renderKanban();
+    renderProgress();
+  }
+};
+
+window.deleteTask = function (taskId) {
+  AppState.tasks = AppState.tasks.filter((t) => t.id !== taskId);
+  saveData();
+  renderKanban();
+  renderProgress();
+};
+
+// Cálculo de la barra de progreso
+function renderProgress() {
+  // 1. Progreso Global
+  const totalGlobal = AppState.tasks.length;
+  const doneGlobal = AppState.tasks.filter((t) => t.status === "done").length;
+  const globalPct =
+    totalGlobal === 0 ? 0 : Math.round((doneGlobal / totalGlobal) * 100);
+
+  document.getElementById("globalProgressBar").style.width = `${globalPct}%`;
+  document.getElementById("globalProgressPercent").textContent =
+    `${globalPct}%`;
+  document.getElementById("globalProgressCount").textContent =
+    `${doneGlobal} de ${totalGlobal} tareas hechas`;
+
+  // 2. Progreso del Filtro Seleccionado
+  const filteredTasks =
+    AppState.filterProject === "all"
+      ? AppState.tasks
+      : AppState.tasks.filter((t) => t.projectId === AppState.filterProject);
+
+  const totalFiltered = filteredTasks.length;
+  const doneFiltered = filteredTasks.filter((t) => t.status === "done").length;
+  const filteredPct =
+    totalFiltered === 0 ? 0 : Math.round((doneFiltered / totalFiltered) * 100);
+
+  document.getElementById("filteredProgressBar").style.width =
+    `${filteredPct}%`;
+  document.getElementById("filteredProgressText").textContent =
+    `${filteredPct}%`;
+}
+
+function setupProjectFilter() {
+  const select = document.getElementById("projectFilter");
+  const taskProjectSelect = document.getElementById("taskProject");
+  const deleteBtn = document.getElementById("btnDeleteProject");
+
+  select.innerHTML = '<option value="all">Todos los proyectos</option>';
+  taskProjectSelect.innerHTML = "";
+
+  if (AppState.projects.length === 0) {
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = "-- Primero crea un proyecto --";
+    taskProjectSelect.appendChild(emptyOpt);
+  } else {
+    AppState.projects.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name;
+      select.appendChild(opt);
+
+      const taskOpt = document.createElement("option");
+      taskOpt.value = p.id;
+      taskOpt.textContent = p.name;
+      taskProjectSelect.appendChild(taskOpt);
+    });
+  }
+
+  // Si el filtro actual ya no existe, restablecer a 'all'
+  if (
+    AppState.filterProject !== "all" &&
+    !AppState.projects.some((p) => p.id === AppState.filterProject)
+  ) {
+    AppState.filterProject = "all";
+  }
+
+  select.value = AppState.filterProject;
+  if (deleteBtn) {
+    deleteBtn.style.display =
+      AppState.filterProject === "all" ? "none" : "inline-flex";
+  }
+}
+
+// ================= CALENDARIO =================
+const monthNames = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+function renderCalendar() {
+  const monthYearLabel = document.getElementById("calendarMonthYear");
+  monthYearLabel.textContent = `${monthNames[AppState.currentMonth]} ${AppState.currentYear}`;
+
+  const grid = document.getElementById("calendarDaysGrid");
+  grid.innerHTML = "";
+
+  const firstDayIndex =
+    (new Date(AppState.currentYear, AppState.currentMonth, 1).getDay() + 6) % 7; // Lunes = 0
+  const daysInMonth = new Date(
+    AppState.currentYear,
+    AppState.currentMonth + 1,
+    0,
+  ).getDate();
+  const prevMonthDays = new Date(
+    AppState.currentYear,
+    AppState.currentMonth,
+    0,
+  ).getDate();
+
+  // Días del mes previo
+  for (let i = firstDayIndex; i > 0; i--) {
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "calendar-day other-month";
+    dayDiv.innerHTML = `<span class="day-number">${prevMonthDays - i + 1}</span>`;
+    grid.appendChild(dayDiv);
+  }
+
+  const today = new Date();
+
+  // Días del mes actual
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayDiv = document.createElement("div");
+    dayDiv.className = "calendar-day";
+
+    if (
+      today.getDate() === day &&
+      today.getMonth() === AppState.currentMonth &&
+      today.getFullYear() === AppState.currentYear
+    ) {
+      dayDiv.classList.add("today");
+    }
+
+    const dateStr = `${AppState.currentYear}-${String(AppState.currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    dayDiv.innerHTML = `<span class="day-number">${day}</span>`;
+
+    // Buscar eventos en esta fecha
+    const dayEvents = AppState.events.filter((e) => e.date === dateStr);
+    dayEvents.forEach((e) => {
+      const pill = document.createElement("div");
+      pill.className = `event-pill event-${e.type}`;
+      pill.title = e.title;
+      pill.textContent = `${e.type === "examen" ? "📝" : "📌"} ${e.title}`;
+      dayDiv.appendChild(pill);
+    });
+
+    // Clic para abrir el modal de detalles del día
+    dayDiv.addEventListener("click", () => {
+      openDayDetailsModal(dateStr);
+    });
+
+    grid.appendChild(dayDiv);
+  }
+}
+
+document.getElementById("prevMonthBtn").addEventListener("click", () => {
+  AppState.currentMonth--;
+  if (AppState.currentMonth < 0) {
+    AppState.currentMonth = 11;
+    AppState.currentYear--;
+  }
+  renderCalendar();
+});
+
+document.getElementById("nextMonthBtn").addEventListener("click", () => {
+  AppState.currentMonth++;
+  if (AppState.currentMonth > 11) {
+    AppState.currentMonth = 0;
+    AppState.currentYear++;
+  }
+  renderCalendar();
+});
+
+document.getElementById("todayBtn").addEventListener("click", () => {
+  AppState.currentMonth = new Date().getMonth();
+  AppState.currentYear = new Date().getFullYear();
+  renderCalendar();
+});
+
+// ================= HORARIO =================
+const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+function renderTimetable() {
+  const grid = document.getElementById("timetableGrid");
+  grid.innerHTML = "";
+
+  // Encabezados
+  const emptyCorner = document.createElement("div");
+  emptyCorner.className = "time-col-header";
+  emptyCorner.textContent = "Hora";
+  grid.appendChild(emptyCorner);
+
+  daysOfWeek.forEach((dayName) => {
+    const colHeader = document.createElement("div");
+    colHeader.className = "day-col-header";
+    colHeader.textContent = dayName;
+    grid.appendChild(colHeader);
+  });
+
+  // Franjas horarias principales (ej: de 8h a 15h)
+  const timeSlots = [
     "08:00",
     "09:00",
     "10:00",
     "11:00",
     "12:00",
     "13:00",
-  ],
-  currentProjectId: "all",
-  calendarDate: new Date(),
-};
+    "14:00",
+  ];
 
-function saveState() {
-  localStorage.setItem("studyflow_projects", JSON.stringify(state.projects));
-  localStorage.setItem("studyflow_tasks", JSON.stringify(state.tasks));
-  localStorage.setItem("studyflow_events", JSON.stringify(state.events));
-  localStorage.setItem("studyflow_classes", JSON.stringify(state.classes));
-  localStorage.setItem("studyflow_hours", JSON.stringify(state.timetableHours));
+  timeSlots.forEach((slotTime) => {
+    // Etiqueta de la hora
+    const slotLabel = document.createElement("div");
+    slotLabel.className = "time-slot-label";
+    slotLabel.textContent = slotTime;
+    grid.appendChild(slotLabel);
+
+    // 5 columnas para los días
+    for (let day = 1; day <= 5; day++) {
+      const slotCell = document.createElement("div");
+      slotCell.className = "day-column-slots";
+
+      // Clases que coinciden con este día y empiezan cerca de esta hora
+      const hourVal = parseInt(slotTime.split(":")[0]);
+      const matchedClasses = AppState.classes.filter((c) => {
+        const classHour = parseInt(c.startTime.split(":")[0]);
+        return c.day === day && classHour === hourVal;
+      });
+
+      matchedClasses.forEach((cls) => {
+        const card = document.createElement("div");
+        card.className = "class-card";
+        card.style.backgroundColor = cls.color || "#4f46e5";
+        card.innerHTML = `
+          <button class="delete-btn" title="Eliminar clase" onclick="deleteClass('${cls.id}')">&times;</button>
+          <strong>${cls.name}</strong>
+          <span>📍 ${cls.room || "Sin aula"}</span>
+          <span>⏱️ ${cls.startTime} - ${cls.endTime}</span>
+        `;
+        slotCell.appendChild(card);
+      });
+
+      grid.appendChild(slotCell);
+    }
+  });
 }
 
-// ================= UTILIDADES DE MODALES =================
-window.openModal = function (modalId) {
-  document.getElementById(modalId).classList.add("open");
+window.deleteClass = function (id) {
+  AppState.classes = AppState.classes.filter((c) => c.id !== id);
+  saveData();
+  renderTimetable();
+  const activeDate = document.getElementById("dayQuickEventDate")?.value;
+  if (activeDate) {
+    renderDayDetailsContent(activeDate);
+  }
 };
 
-window.closeModal = function (modalId) {
-  document.getElementById(modalId).classList.remove("open");
+window.deleteEvent = function (id) {
+  const ev = AppState.events.find((e) => e.id === id);
+  if (!ev) return;
+
+  if (confirm(`¿Deseas eliminar el evento "${ev.title}"?`)) {
+    const eventDate = ev.date;
+    AppState.events = AppState.events.filter((e) => e.id !== id);
+    saveData();
+    renderCalendar();
+
+    const activeDateInput = document.getElementById("dayQuickEventDate");
+    if (activeDateInput && activeDateInput.value === eventDate) {
+      renderDayDetailsContent(eventDate);
+    }
+  }
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Navegación entre vistas
-  const navButtons = document.querySelectorAll(".nav-btn");
-  navButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      navButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+window.openDayDetailsModal = function (dateStr) {
+  renderDayDetailsContent(dateStr);
+  openModal("dayDetailsModal");
+};
 
-      const viewId = btn.getAttribute("data-view");
-      document.querySelectorAll(".view-section").forEach((section) => {
-        section.classList.remove("active");
-      });
-      document.getElementById(viewId).classList.add("active");
+function renderDayDetailsContent(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const dayOfWeek = dateObj.getDay(); // 0: Dom, 1: Lun, 2: Mar, 3: Mie, 4: Jue, 5: Vie, 6: Sab
+
+  const dayNamesLong = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ];
+
+  const dayEvents = AppState.events.filter((e) => e.date === dateStr);
+
+  document.getElementById("dayModalDateTitle").textContent =
+    `${dayNamesLong[dayOfWeek]}, ${day} de ${monthNames[month - 1]} de ${year}`;
+  document.getElementById("dayModalDateSubtitle").textContent =
+    `${dayEvents.length} evento(s) y entregas para este día`;
+  document.getElementById("dayQuickEventDate").value = dateStr;
+
+  // 1. Clases de ese día de la semana
+  const classesContainer = document.getElementById("dayClassesList");
+  const classesBadge = document.getElementById("dayClassesCountBadge");
+  const dayClasses = AppState.classes
+    .filter((c) => c.day === dayOfWeek)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  classesBadge.textContent = `${dayClasses.length} ${dayClasses.length === 1 ? "clase" : "clases"}`;
+  classesContainer.innerHTML = "";
+
+  if (dayClasses.length === 0) {
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    classesContainer.innerHTML = `<p class="day-empty-text">${
+      isWeekend
+        ? "🌴 Fin de semana — Sin clases lectivas"
+        : "📖 No tienes clases registradas para este día"
+    }</p>`;
+  } else {
+    dayClasses.forEach((c) => {
+      const card = document.createElement("div");
+      card.className = "day-class-card";
+      card.style.borderLeftColor = c.color || "#4f46e5";
+      card.innerHTML = `
+        <div class="day-class-main">
+          <span class="day-class-name">${c.name}</span>
+          <span class="day-class-room">📍 ${c.room || "Sin aula asignada"}</span>
+        </div>
+        <span class="day-class-time">⏱️ ${c.startTime} - ${c.endTime}</span>
+      `;
+      classesContainer.appendChild(card);
     });
+  }
+
+  // 2. Eventos y entregas del día
+  const eventsContainer = document.getElementById("dayEventsList");
+  const eventsBadge = document.getElementById("dayEventsCountBadge");
+
+  eventsBadge.textContent = `${dayEvents.length} ${dayEvents.length === 1 ? "evento" : "eventos"}`;
+  eventsContainer.innerHTML = "";
+
+  if (dayEvents.length === 0) {
+    eventsContainer.innerHTML =
+      '<p class="day-empty-text">No hay eventos ni entregas registradas para este día.</p>';
+  } else {
+    dayEvents.forEach((e) => {
+      const typeLabel =
+        e.type === "examen"
+          ? "📝 Examen"
+          : e.type === "proyecto"
+            ? "📌 Proyecto"
+            : "ℹ️ Otro";
+
+      const row = document.createElement("div");
+      row.className = "day-event-card";
+      row.innerHTML = `
+        <div class="day-event-info">
+          <span class="day-event-badge event-${e.type}">${typeLabel}</span>
+          <span class="day-event-title">${e.title}</span>
+        </div>
+        <button type="button" class="event-delete-btn" title="Eliminar evento" onclick="deleteEvent('${e.id}')">
+          🗑️ Eliminar
+        </button>
+      `;
+      eventsContainer.appendChild(row);
+    });
+  }
+}
+
+window.deleteProject = function (projectId) {
+  const project = AppState.projects.find((p) => p.id === projectId);
+  if (!project) return;
+
+  const taskCount = AppState.tasks.filter(
+    (t) => t.projectId === projectId,
+  ).length;
+  const confirmMsg =
+    taskCount > 0
+      ? `¿Estás seguro de que deseas eliminar el proyecto "${project.name}"?\nSe eliminarán también las ${taskCount} tarea(s) asociadas a este proyecto.`
+      : `¿Estás seguro de que deseas eliminar el proyecto "${project.name}"?`;
+
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  // 1. Eliminar tareas asociadas al proyecto
+  AppState.tasks = AppState.tasks.filter((t) => t.projectId !== projectId);
+
+  // 2. Eliminar el proyecto
+  AppState.projects = AppState.projects.filter((p) => p.id !== projectId);
+
+  // 3. Resetear filtro si era este proyecto
+  if (AppState.filterProject === projectId) {
+    AppState.filterProject = "all";
+  }
+
+  // 4. Guardar y refrescar vistas
+  saveData();
+  setupProjectFilter();
+  renderProjectListModal();
+  renderKanban();
+  renderProgress();
+};
+
+function renderProjectListModal() {
+  const container = document.getElementById("projectListModal");
+  if (!container) return;
+
+  container.innerHTML = "";
+  if (AppState.projects.length === 0) {
+    container.innerHTML =
+      '<p class="empty-projects-msg">No hay proyectos creados.</p>';
+    return;
+  }
+
+  AppState.projects.forEach((p) => {
+    const taskCount = AppState.tasks.filter((t) => t.projectId === p.id).length;
+    const row = document.createElement("div");
+    row.className = "project-item-row";
+    row.innerHTML = `
+      <div class="project-item-info">
+        <span class="project-color-dot" style="background-color: ${p.color}"></span>
+        <span class="project-item-name">${p.name}</span>
+        <span class="project-item-tasks">(${taskCount} ${taskCount === 1 ? "tarea" : "tareas"})</span>
+      </div>
+      <div class="project-item-actions">
+        <button type="button" class="project-delete-btn" title="Eliminar proyecto" onclick="deleteProject('${p.id}')">
+          🗑️ Eliminar
+        </button>
+      </div>
+    `;
+    container.appendChild(row);
   });
+}
 
-  initKanban();
-  initCalendar();
-  initTimetable();
-  initAuthUI();
-});
+// ================= GESTIÓN DE MODALES =================
+function setupModals() {
+  // Filtro de proyectos y botón de eliminar proyecto seleccionado
+  const projectFilterSelect = document.getElementById("projectFilter");
+  if (projectFilterSelect) {
+    projectFilterSelect.addEventListener("change", (e) => {
+      AppState.filterProject = e.target.value;
+      const deleteBtn = document.getElementById("btnDeleteProject");
+      if (deleteBtn) {
+        deleteBtn.style.display =
+          AppState.filterProject === "all" ? "none" : "inline-flex";
+      }
+      renderKanban();
+      renderProgress();
+    });
+  }
 
-// ================= 1. KANBAN Y PROYECTOS =================
-function initKanban() {
-  renderProjectSelectors();
-  renderKanbanTasks();
+  const btnDeleteProject = document.getElementById("btnDeleteProject");
+  if (btnDeleteProject) {
+    btnDeleteProject.addEventListener("click", () => {
+      if (AppState.filterProject !== "all") {
+        deleteProject(AppState.filterProject);
+      }
+    });
+  }
 
-  document.getElementById("projectSelect").addEventListener("change", (e) => {
-    state.currentProjectId = e.target.value;
-    renderKanbanTasks();
-  });
-
+  // Modal Tarea
   document.getElementById("btnNewTask").addEventListener("click", () => {
-    populateProjectDropdowns();
     document.getElementById("taskForm").reset();
+    document.getElementById("taskModalTitle").textContent = "Nueva Tarea";
     document.getElementById("taskId").value = "";
-    document.getElementById("taskModalTitle").innerText = "Nueva Tarea";
     openModal("taskModal");
   });
 
   document.getElementById("taskForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const id = document.getElementById("taskId").value;
-    const title = document.getElementById("taskTitleInput").value;
-    const projectId = document.getElementById("taskProjectSelect").value;
-    const priority = document.getElementById("taskPrioritySelect").value;
-    const status = document.getElementById("taskStatusSelect").value;
-
-    if (id) {
-      const task = state.tasks.find((t) => t.id === id);
-      if (task) {
-        task.title = title;
-        task.projectId = projectId;
-        task.priority = priority;
-        task.status = status;
-      }
-    } else {
-      state.tasks.push({
-        id: "t_" + Date.now(),
-        title,
-        projectId,
-        priority,
-        status,
-      });
+    const projectId = document.getElementById("taskProject").value;
+    if (!projectId) {
+      alert(
+        "Por favor, crea o selecciona un proyecto antes de añadir una tarea.",
+      );
+      return;
     }
-    saveState();
+    const id = document.getElementById("taskId").value || "task-" + Date.now();
+    const newTask = {
+      id,
+      title: document.getElementById("taskTitle").value,
+      projectId: projectId,
+      priority: document.getElementById("taskPriority").value,
+      dueDate: document.getElementById("taskDueDate").value,
+      status: "todo",
+    };
+
+    AppState.tasks.push(newTask);
+    saveData();
+    renderKanban();
+    renderProgress();
     closeModal("taskModal");
-    renderKanbanTasks();
   });
 
-  document.getElementById("btnManageProjects").addEventListener("click", () => {
-    renderProjectsModalList();
-    openModal("projectsModal");
+  // Modal Proyecto
+  document.getElementById("btnNewProject").addEventListener("click", () => {
+    document.getElementById("projectForm").reset();
+    renderProjectListModal();
+    openModal("projectModal");
   });
 
   document.getElementById("projectForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const name = document.getElementById("newProjectName").value;
-    const color = document.getElementById("newProjectColor").value;
-    state.projects.push({ id: "p_" + Date.now(), name, color });
-    saveState();
-    document.getElementById("newProjectName").value = "";
-    renderProjectSelectors();
-    renderProjectsModalList();
-    renderKanbanTasks();
-  });
-}
-
-function renderProjectSelectors() {
-  const select = document.getElementById("projectSelect");
-  select.innerHTML = `<option value="all">📂 Todos los Proyectos</option>`;
-  state.projects.forEach((p) => {
-    select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-  });
-  select.value = state.currentProjectId;
-}
-
-function populateProjectDropdowns() {
-  const select = document.getElementById("taskProjectSelect");
-  select.innerHTML = "";
-  state.projects.forEach((p) => {
-    select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-  });
-}
-
-function renderProjectsModalList() {
-  const list = document.getElementById("projectListModal");
-  list.innerHTML = "";
-  if (state.projects.length === 0) {
-    list.innerHTML = `<p class="empty-projects-msg">No hay proyectos creados.</p>`;
-    return;
-  }
-  state.projects.forEach((p) => {
-    const count = state.tasks.filter((t) => t.projectId === p.id).length;
-    list.innerHTML += `
-            <div class="project-item-row">
-                <div class="project-item-info">
-                    <span class="project-color-dot" style="background-color: ${p.color};"></span>
-                    <span class="project-item-name">${p.name}</span>
-                    <span class="project-item-tasks">(${count} tareas)</span>
-                </div>
-                <button class="project-delete-btn" onclick="deleteProject('${p.id}')">Eliminar</button>
-            </div>
-        `;
-  });
-}
-
-window.deleteProject = function (id) {
-  if (confirm("¿Eliminar este proyecto y sus tareas asociadas?")) {
-    state.projects = state.projects.filter((p) => p.id !== id);
-    state.tasks = state.tasks.filter((t) => t.projectId !== id);
-    if (state.currentProjectId === id) state.currentProjectId = "all";
-    saveState();
-    renderProjectSelectors();
-    renderProjectsModalList();
-    renderKanbanTasks();
-  }
-};
-
-function renderKanbanTasks() {
-  const filteredTasks =
-    state.currentProjectId === "all"
-      ? state.tasks
-      : state.tasks.filter((t) => t.projectId === state.currentProjectId);
-
-  const lists = {
-    todo: document.getElementById("listTodo"),
-    progress: document.getElementById("listProgress"),
-    done: document.getElementById("listDone"),
-  };
-  const counts = { todo: 0, progress: 0, done: 0 };
-
-  Object.values(lists).forEach((l) => (l.innerHTML = ""));
-
-  filteredTasks.forEach((task) => {
-    counts[task.status]++;
-    const project = state.projects.find((p) => p.id === task.projectId) || {
-      name: "General",
-      color: "#64748b",
+    const name = document.getElementById("projectName").value.trim();
+    if (!name) return;
+    const newProj = {
+      id: "proj-" + Date.now(),
+      name: name,
+      color: document.getElementById("projectColor").value,
     };
-
-    const card = document.createElement("div");
-    card.className = "kanban-card";
-    card.innerHTML = `
-            <span class="card-project-tag" style="background-color: ${project.color};">${project.name}</span>
-            <div class="card-title">${task.title}</div>
-            <div class="card-footer">
-                <span class="priority-tag priority-${task.priority}">● ${task.priority}</span>
-                <div class="card-actions">
-                    <button class="card-btn" onclick="editTask('${task.id}')">✏️</button>
-                    <button class="card-btn" onclick="deleteTask('${task.id}')">🗑️</button>
-                </div>
-            </div>
-        `;
-    lists[task.status].appendChild(card);
+    AppState.projects.push(newProj);
+    saveData();
+    setupProjectFilter();
+    renderProjectListModal();
+    renderKanban();
+    closeModal("projectModal");
   });
 
-  document.getElementById("countTodo").innerText = counts.todo;
-  document.getElementById("countProgress").innerText = counts.progress;
-  document.getElementById("countDone").innerText = counts.done;
-
-  // Progreso global y de proyecto
-  const total = state.tasks.length;
-  const completed = state.tasks.filter((t) => t.status === "done").length;
-  const globalPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  document.getElementById("globalProgressBar").style.width = globalPct + "%";
-  document.getElementById("globalProgressText").innerText = globalPct + "%";
-  document.getElementById("globalProgressSubtext").innerText =
-    `${completed} de ${total} tareas completadas`;
-}
-
-window.deleteTask = function (id) {
-  state.tasks = state.tasks.filter((t) => t.id !== id);
-  saveState();
-  renderKanbanTasks();
-};
-
-window.editTask = function (id) {
-  const task = state.tasks.find((t) => t.id === id);
-  if (!task) return;
-  populateProjectDropdowns();
-  document.getElementById("taskId").value = task.id;
-  document.getElementById("taskTitleInput").value = task.title;
-  document.getElementById("taskProjectSelect").value = task.projectId;
-  document.getElementById("taskPrioritySelect").value = task.priority;
-  document.getElementById("taskStatusSelect").value = task.status;
-  document.getElementById("taskModalTitle").innerText = "Editar Tarea";
-  openModal("taskModal");
-};
-
-// ================= 2. CALENDARIO =================
-function initCalendar() {
-  document.getElementById("btnPrevMonth").addEventListener("click", () => {
-    state.calendarDate.setMonth(state.calendarDate.getMonth() - 1);
-    renderCalendar();
-  });
-  document.getElementById("btnNextMonth").addEventListener("click", () => {
-    state.calendarDate.setMonth(state.calendarDate.getMonth() + 1);
-    renderCalendar();
-  });
-
+  // Modal Evento
   document.getElementById("btnNewEvent").addEventListener("click", () => {
-    document.getElementById("eventForm").reset();
-    openModal("eventModal");
+    openEventModal(new Date().toISOString().slice(0, 10));
   });
 
   document.getElementById("eventForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const title = document.getElementById("eventTitleInput").value;
-    const date = document.getElementById("eventDateInput").value;
-    const type = document.getElementById("eventTypeSelect").value;
-    state.events.push({ id: "e_" + Date.now(), title, date, type });
-    saveState();
-    closeModal("eventModal");
+    const newEvent = {
+      id: "ev-" + Date.now(),
+      title: document.getElementById("eventTitle").value,
+      date: document.getElementById("eventDate").value,
+      type: document.getElementById("eventType").value,
+    };
+    AppState.events.push(newEvent);
+    saveData();
     renderCalendar();
+    const activeDate = document.getElementById("dayQuickEventDate")?.value;
+    if (activeDate === newEvent.date) {
+      renderDayDetailsContent(activeDate);
+    }
+    closeModal("eventModal");
   });
 
-  document
-    .getElementById("dayQuickEventForm")
-    .addEventListener("submit", (e) => {
+  // Formulario rápido de eventos en Detalles del Día
+  const dayQuickEventForm = document.getElementById("dayQuickEventForm");
+  if (dayQuickEventForm) {
+    dayQuickEventForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const date = document.getElementById("dayQuickEventDate").value;
-      const title = document.getElementById("dayQuickEventTitle").value;
+      const title = document.getElementById("dayQuickEventTitle").value.trim();
       const type = document.getElementById("dayQuickEventType").value;
-      state.events.push({ id: "e_" + Date.now(), title, date, type });
-      saveState();
-      document.getElementById("dayQuickEventTitle").value = "";
-      openDayDetailModal(date);
+      if (!title || !date) return;
+
+      const newEvent = {
+        id: "ev-" + Date.now(),
+        title,
+        date,
+        type,
+      };
+      AppState.events.push(newEvent);
+      saveData();
       renderCalendar();
-    });
-
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const year = state.calendarDate.getFullYear();
-  const month = state.calendarDate.getMonth();
-  const monthsNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ];
-
-  document.getElementById("currentMonthYearLabel").innerText =
-    `${monthsNames[month]} ${year}`;
-
-  const grid = document.getElementById("calendarGrid");
-  grid.innerHTML = "";
-
-  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  const prevDays = new Date(year, month, 0).getDate();
-
-  const todayStr = new Date().toISOString().split("T")[0];
-
-  // Días del mes anterior
-  for (let i = firstDayIndex; i > 0; i--) {
-    const dayNum = prevDays - i + 1;
-    grid.innerHTML += `<div class="calendar-day other-month"><div class="day-number">${dayNum}</div></div>`;
-  }
-
-  // Días del mes actual
-  for (let d = 1; d <= totalDays; d++) {
-    const monthStr = String(month + 1).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-
-    const isToday = dateStr === todayStr ? "today" : "";
-    const dayEvents = state.events.filter((e) => e.date === dateStr);
-
-    let pillsHtml = "";
-    dayEvents.forEach((ev) => {
-      pillsHtml += `<div class="event-pill event-${ev.type}">${ev.title}</div>`;
-    });
-
-    const cell = document.createElement("div");
-    cell.className = `calendar-day ${isToday}`;
-    cell.innerHTML = `<div class="day-number">${d}</div>${pillsHtml}`;
-    cell.addEventListener("click", () => openDayDetailModal(dateStr));
-    grid.appendChild(cell);
-  }
-}
-
-function openDayDetailModal(dateStr) {
-  document.getElementById("dayQuickEventDate").value = dateStr;
-  const [y, m, d] = dateStr.split("-");
-  document.getElementById("dayModalTitle").innerText = `${d}/${m}/${y}`;
-  document.getElementById("dayModalDateSubtitle").innerText =
-    `Gestión de actividades para este día`;
-
-  // Clases del día (Días de la semana: Lunes 1 a Viernes 5)
-  const dateObj = new Date(y, m - 1, d);
-  let jsDay = dateObj.getDay(); // 0 Dom, 1 Lun...
-  let dayIndex = jsDay === 0 ? 7 : jsDay;
-
-  const classesList = document.getElementById("dayModalClassesList");
-  classesList.innerHTML = "";
-  const dayClasses = state.classes.filter((c) => Number(c.day) === dayIndex);
-  if (dayClasses.length === 0) {
-    classesList.innerHTML = `<div class="day-empty-text">No hay clases programadas para este día.</div>`;
-  } else {
-    dayClasses.forEach((c) => {
-      classesList.innerHTML += `
-                <div class="day-class-card" style="border-left-color: ${c.color || "#4C9DB0"};">
-                    <div class="day-class-main">
-                        <span class="day-class-name">${c.name}</span>
-                        <span class="day-class-room">${c.room || "Sin aula"}</span>
-                    </div>
-                    <span class="day-class-time">${c.time}</span>
-                </div>
-            `;
+      document.getElementById("dayQuickEventTitle").value = "";
+      renderDayDetailsContent(date);
     });
   }
 
-  // Eventos del día
-  const eventsList = document.getElementById("dayModalEventsList");
-  eventsList.innerHTML = "";
-  const dayEvents = state.events.filter((e) => e.date === dateStr);
-  if (dayEvents.length === 0) {
-    eventsList.innerHTML = `<div class="day-empty-text">No hay eventos ni exámenes este día.</div>`;
-  } else {
-    dayEvents.forEach((ev) => {
-      eventsList.innerHTML += `
-                <div class="day-event-card">
-                    <div class="day-event-info">
-                        <span class="day-event-badge event-${ev.type}">${ev.type}</span>
-                        <span class="day-event-title">${ev.title}</span>
-                    </div>
-                    <button class="event-delete-btn" onclick="deleteCalendarEvent('${ev.id}', '${dateStr}')">Eliminar</button>
-                </div>
-            `;
-    });
-  }
-
-  openModal("dayDetailModal");
-}
-
-window.deleteCalendarEvent = function (id, dateStr) {
-  state.events = state.events.filter((e) => e.id !== id);
-  saveState();
-  openDayDetailModal(dateStr);
-  renderCalendar();
-};
-
-// ================= 3. HORARIO Y FRANJAS HORARIAS EDITABLES =================
-function initTimetable() {
-  // Abrir modal de horas
-  document.getElementById("btnOpenHoursModal").addEventListener("click", () => {
-    document.getElementById("timetableHoursInput").value =
-      state.timetableHours.join(", ");
-    openModal("timetableHoursModal");
-  });
-
-  document
-    .getElementById("timetableHoursForm")
-    .addEventListener("submit", (e) => {
-      e.preventDefault();
-      const inputVal = document.getElementById("timetableHoursInput").value;
-      // Separar por comas y limpiar espacios en blanco
-      const newHours = inputVal
-        .split(",")
-        .map((h) => h.trim())
-        .filter((h) => h.length > 0);
-      if (newHours.length > 0) {
-        state.timetableHours = newHours;
-        saveState();
-        closeModal("timetableHoursModal");
-        renderTimetable();
-      }
-    });
-
+  // Modal Clase
   document.getElementById("btnNewClass").addEventListener("click", () => {
-    populateClassTimeDropdown();
     document.getElementById("classForm").reset();
     openModal("classModal");
   });
 
   document.getElementById("classForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const name = document.getElementById("classNameInput").value;
-    const day = document.getElementById("classDaySelect").value;
-    const time = document.getElementById("classTimeSelect").value;
-    const room = document.getElementById("classRoomInput").value;
-    const color = document.getElementById("classColorInput").value;
-
-    state.classes.push({
-      id: "c_" + Date.now(),
-      name,
-      day: Number(day),
-      time,
-      room,
-      color,
-    });
-    saveState();
-    closeModal("classModal");
+    const newClass = {
+      id: "c-" + Date.now(),
+      name: document.getElementById("className").value,
+      room: document.getElementById("classRoom").value,
+      day: parseInt(document.getElementById("classDay").value),
+      startTime: document.getElementById("classStartTime").value,
+      endTime: document.getElementById("classEndTime").value,
+      color: document.getElementById("classColor").value,
+    };
+    AppState.classes.push(newClass);
+    saveData();
     renderTimetable();
-  });
-
-  renderTimetable();
-}
-
-function populateClassTimeDropdown() {
-  const select = document.getElementById("classTimeSelect");
-  select.innerHTML = "";
-  state.timetableHours.forEach((hour) => {
-    select.innerHTML += `<option value="${hour}">${hour}</option>`;
-  });
-}
-
-function renderTimetable() {
-  const grid = document.getElementById("timetableGrid");
-  grid.innerHTML = "";
-
-  // Definir columnas de la rejilla dinámicamente según las horas configuradas
-  grid.style.gridTemplateColumns = `80px repeat(5, minmax(130px, 1fr))`;
-
-  // Encabezado
-  grid.innerHTML += `<div class="time-col-header">Hora</div>`;
-  const daysName = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-  daysName.forEach((d) => {
-    grid.innerHTML += `<div class="day-col-header">${d}</div>`;
-  });
-
-  // Filas por cada hora configurada por el usuario
-  state.timetableHours.forEach((hour) => {
-    // Etiqueta de hora
-    grid.innerHTML += `<div class="time-slot-label">${hour}</div>`;
-
-    // Columnas de lunes a viernes (1 a 5)
-    for (let d = 1; d <= 5; d++) {
-      const slotContainer = document.createElement("div");
-      slotContainer.className = "day-column-slots";
-
-      const matchingClasses = state.classes.filter(
-        (c) => Number(c.day) === d && c.time === hour,
-      );
-      matchingClasses.forEach((c) => {
-        const card = document.createElement("div");
-        card.className = "class-card";
-        card.style.backgroundColor = c.color || "#4C9DB0";
-        card.innerHTML = `
-                    <div style="font-weight: 600;">${c.name}</div>
-                    <div style="font-size: 0.75rem; opacity: 0.9;">${c.room || ""}</div>
-                    <button class="delete-btn" onclick="deleteClass('${c.id}')">&times;</button>
-                `;
-        slotContainer.appendChild(card);
-      });
-
-      grid.appendChild(slotContainer);
+    const activeDate = document.getElementById("dayQuickEventDate")?.value;
+    if (activeDate) {
+      renderDayDetailsContent(activeDate);
     }
+    closeModal("classModal");
   });
+
+  // Modal Autenticación y Sincronización
+  const btnOpenAuthModal = document.getElementById("btnOpenAuthModal");
+  if (btnOpenAuthModal) {
+    btnOpenAuthModal.addEventListener("click", () => {
+      document.getElementById("authEmailForm").reset();
+      document.getElementById("authErrorMessage").style.display = "none";
+      openModal("authModal");
+    });
+  }
+
+  let isRegisterMode = false;
+  const btnToggleAuthMode = document.getElementById("btnToggleAuthMode");
+  const authModalTitle = document.getElementById("authModalTitle");
+  const btnAuthSubmit = document.getElementById("btnAuthSubmit");
+
+  if (btnToggleAuthMode) {
+    btnToggleAuthMode.addEventListener("click", () => {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById("authErrorMessage").style.display = "none";
+      if (isRegisterMode) {
+        authModalTitle.textContent = "Crear Cuenta";
+        btnAuthSubmit.textContent = "Registrarse";
+        btnToggleAuthMode.textContent = "¿Ya tienes cuenta? Inicia sesión";
+      } else {
+        authModalTitle.textContent = "Iniciar Sesión";
+        btnAuthSubmit.textContent = "Iniciar Sesión";
+        btnToggleAuthMode.textContent = "¿No tienes cuenta? Regístrate";
+      }
+    });
+  }
+
+  const btnGoogleSignIn = document.getElementById("btnGoogleSignIn");
+  if (btnGoogleSignIn) {
+    btnGoogleSignIn.addEventListener("click", async () => {
+      const errorMsg = document.getElementById("authErrorMessage");
+      errorMsg.style.display = "none";
+      if (!window.FirebaseSync) {
+        errorMsg.textContent = "Cargando servicio de conexión...";
+        errorMsg.style.display = "block";
+        return;
+      }
+      const res = await window.FirebaseSync.loginWithGoogle();
+      if (res.success) {
+        closeModal("authModal");
+      } else {
+        errorMsg.textContent = res.error;
+        errorMsg.style.display = "block";
+      }
+    });
+  }
+
+  const authEmailForm = document.getElementById("authEmailForm");
+  if (authEmailForm) {
+    authEmailForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const errorMsg = document.getElementById("authErrorMessage");
+      errorMsg.style.display = "none";
+
+      if (!window.FirebaseSync) {
+        errorMsg.textContent = "El servicio de conexión aún no está listo.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.textContent = "Procesando...";
+
+      let res;
+      if (isRegisterMode) {
+        res = await window.FirebaseSync.registerWithEmail(email, password);
+      } else {
+        res = await window.FirebaseSync.loginWithEmail(email, password);
+      }
+
+      btnAuthSubmit.disabled = false;
+      btnAuthSubmit.textContent = isRegisterMode
+        ? "Registrarse"
+        : "Iniciar Sesión";
+
+      if (res.success) {
+        closeModal("authModal");
+      } else {
+        errorMsg.textContent = res.error;
+        errorMsg.style.display = "block";
+      }
+    });
+  }
+
+  const btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      if (window.FirebaseSync) {
+        await window.FirebaseSync.logout();
+      }
+    });
+  }
 }
 
-window.deleteClass = function (id) {
-  state.classes = state.classes.filter((c) => c.id !== id);
-  saveState();
-  renderTimetable();
+function openEventModal(defaultDate) {
+  document.getElementById("eventForm").reset();
+  if (defaultDate) {
+    document.getElementById("eventDate").value = defaultDate;
+  }
+  openModal("eventModal");
+}
+
+window.openModal = function (id) {
+  document.getElementById(id).classList.add("open");
 };
 
-// ================= AUTH LOCAL PLACEHOLDER =================
-function initAuthUI() {
-  document.getElementById("btnOpenAuthModal").addEventListener("click", () => {
-    openModal("authModal");
-  });
-  document.getElementById("btnLoginGoogle").addEventListener("click", () => {
-    // Simulación de login exitoso con Google
-    document.getElementById("authLoggedOutView").style.display = "none";
-    document.getElementById("authLoggedInView").style.display = "flex";
-    document.getElementById("userNameLabel").innerText = "Estudiante StudyFlow";
-    document.getElementById("userEmailLabel").innerText = "usuario@gmail.com";
-    document.getElementById("userAvatarText").innerText = "E";
-  });
-  document.getElementById("btnLogout").addEventListener("click", () => {
-    document.getElementById("authLoggedInView").style.display = "none";
-    document.getElementById("authLoggedOutView").style.display = "flex";
-  });
-}
+window.closeModal = function (id) {
+  document.getElementById(id).classList.remove("open");
+};

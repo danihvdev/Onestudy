@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StudyFlow - Gestor de Estudio</title>
+    <title>Organizador Académico</title>
     <link rel="stylesheet" href="styles.css" />
-    <!-- Google Fonts Inter -->
+    <!-- Google Fonts para tipografía limpia y moderna -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -13,27 +15,30 @@
   </head>
   <body>
     <div class="app-container">
-      <!-- SIDEBAR -->
+      <!-- Barra lateral / Navegación -->
       <aside class="sidebar">
         <div class="brand">
-          <span class="brand-icon">📚</span>
-          <h2>StudyFlow</h2>
+          <span class="brand-icon">🎓</span>
+          <h2>OneStudy</h2>
         </div>
 
         <nav class="nav-menu">
-          <button class="nav-btn active" data-view="kanban-view">
-            📋 Tablero Kanban
+          <button class="nav-btn active" data-target="kanban-view">
+            <span class="icon">📋</span> Proyectos & Kanban
           </button>
-          <button class="nav-btn" data-view="calendar-view">
-            📅 Calendario
+          <button class="nav-btn" data-target="calendar-view">
+            <span class="icon">📅</span> Calendario
           </button>
-          <button class="nav-btn" data-view="schedule-view">⏰ Horario</button>
+          <button class="nav-btn" data-target="schedule-view">
+            <span class="icon">🕒</span> Horario de Clases
+          </button>
         </nav>
 
+        <!-- Resumen global de progreso -->
         <div class="global-progress-card">
           <div class="progress-title-row">
-            <span>Progreso Global</span>
-            <span id="globalProgressText">0%</span>
+            <span>Progreso Total</span>
+            <strong id="globalProgressPercent">0%</strong>
           </div>
           <div class="progress-bar-bg">
             <div
@@ -42,95 +47,165 @@
               style="width: 0%"
             ></div>
           </div>
-          <div class="progress-subtext" id="globalProgressSubtext">
-            0 de 0 tareas completadas
-          </div>
+          <p class="progress-subtext" id="globalProgressCount">
+            0 de 0 tareas hechas
+          </p>
         </div>
 
         <div class="sidebar-footer">
-          <button class="btn-text" id="btnOpenAuthModal">
-            ⚙️ Cuenta y Sincronización
+          <div id="userProfileCard" class="user-profile-card">
+            <!-- Estado cuando no hay sesión iniciada -->
+            <div id="authLoggedOutView" class="auth-logged-out-view">
+              <div class="cloud-sync-status">
+                <span class="sync-dot offline"></span>
+                <span>Almacenamiento Local</span>
+              </div>
+              <button
+                class="btn btn-primary btn-sm btn-block"
+                id="btnOpenAuthModal"
+              >
+                👤 Iniciar Sesión
+              </button>
+            </div>
+
+            <!-- Estado cuando hay sesión iniciada -->
+            <div
+              id="authLoggedInView"
+              class="auth-logged-in-view"
+              style="display: none"
+            >
+              <div class="user-info-row">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                  <span class="user-name" id="userName">Usuario</span>
+                  <span class="user-email" id="userEmail"
+                    >correo@ejemplo.com</span
+                  >
+                </div>
+              </div>
+              <div class="cloud-sync-status">
+                <span class="sync-dot online"></span>
+                <span>Sincronizado en la nube</span>
+              </div>
+              <button class="btn-text btn-logout" id="btnLogout">
+                🚪 Cerrar Sesión
+              </button>
+            </div>
+          </div>
+
+          <button class="btn-text" id="btnExportData">
+            💾 Exportar Backup
           </button>
         </div>
       </aside>
 
-      <!-- CONTENIDO PRINCIPAL -->
+      <!-- Contenido Principal -->
       <main class="main-content">
-        <!-- ================= 1. KANBAN ================= -->
+        <!-- ================= 1. VISTA KANBAN & PROYECTOS ================= -->
         <section id="kanban-view" class="view-section active">
-          <div class="project-selector-banner">
-            <div class="selector-group">
-              <label for="projectSelect">Proyecto:</label>
-              <select id="projectSelect"></select>
-              <button class="btn btn-secondary btn-sm" id="btnManageProjects">
-                Gestionar
-              </button>
-            </div>
-            <div class="active-project-progress">
-              <div class="progress-bar-bg">
-                <div
-                  class="progress-bar-fill"
-                  id="projectProgressBar"
-                  style="width: 0%"
-                ></div>
-              </div>
-              <span
-                id="projectProgressText"
-                style="font-size: 0.85rem; font-weight: 600"
-                >0%</span
-              >
-            </div>
-          </div>
-
           <header class="section-header">
             <div>
-              <h1>Tablero de Tareas</h1>
+              <h1>Tablero de Proyectos</h1>
               <p class="subtitle">
-                Organiza tus pendientes por fases de trabajo.
+                Gestiona las entregas y observa el avance en tiempo real.
               </p>
             </div>
             <div class="header-actions">
+              <button class="btn btn-secondary" id="btnNewProject">
+                + Nuevo Proyecto
+              </button>
               <button class="btn btn-primary" id="btnNewTask">
-                + Añadir Tarea
+                + Nueva Tarea
               </button>
             </div>
           </header>
 
+          <!-- Filtro de proyectos y barra de avance del proyecto actual -->
+          <div class="project-selector-banner">
+            <div class="selector-group">
+              <label for="projectFilter">Filtrar por proyecto:</label>
+              <select id="projectFilter">
+                <option value="all">Todos los proyectos</option>
+              </select>
+              <button
+                type="button"
+                id="btnDeleteProject"
+                class="btn btn-sm btn-danger"
+                style="display: none"
+                title="Eliminar este proyecto"
+              >
+                🗑️ Borrar proyecto
+              </button>
+            </div>
+            <div class="active-project-progress">
+              <span id="activeProjectLabel">Avance del filtro:</span>
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  id="filteredProgressBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <span id="filteredProgressText">0%</span>
+            </div>
+          </div>
+
+          <!-- Columnas Kanban -->
           <div class="kanban-board">
+            <!-- Columna: Por Hacer -->
             <div class="kanban-column" data-status="todo">
               <div class="column-header">
                 <span class="column-dot dot-todo"></span>
-                <h3>Por hacer</h3>
-                <span class="badge" id="countTodo">0</span>
+                <h3>Por Hacer</h3>
+                <span class="badge" id="count-todo">0</span>
               </div>
-              <div class="kanban-cards" id="listTodo"></div>
+              <div
+                class="kanban-cards"
+                id="cards-todo"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'todo')"
+              ></div>
             </div>
-            <div class="kanban-column" data-status="progress">
+
+            <!-- Columna: En Progreso -->
+            <div class="kanban-column" data-status="in-progress">
               <div class="column-header">
                 <span class="column-dot dot-progress"></span>
-                <h3>En curso</h3>
-                <span class="badge" id="countProgress">0</span>
+                <h3>En Progreso</h3>
+                <span class="badge" id="count-in-progress">0</span>
               </div>
-              <div class="kanban-cards" id="listProgress"></div>
+              <div
+                class="kanban-cards"
+                id="cards-in-progress"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'in-progress')"
+              ></div>
             </div>
+
+            <!-- Columna: Completado -->
             <div class="kanban-column" data-status="done">
               <div class="column-header">
                 <span class="column-dot dot-done"></span>
                 <h3>Completado</h3>
-                <span class="badge" id="countDone">0</span>
+                <span class="badge" id="count-done">0</span>
               </div>
-              <div class="kanban-cards" id="listDone"></div>
+              <div
+                class="kanban-cards"
+                id="cards-done"
+                ondragover="allowDrop(event)"
+                ondrop="handleDrop(event, 'done')"
+              ></div>
             </div>
           </div>
         </section>
 
-        <!-- ================= 2. CALENDARIO ================= -->
+        <!-- ================= 2. VISTA CALENDARIO ================= -->
         <section id="calendar-view" class="view-section">
           <header class="section-header">
             <div>
               <h1>Calendario Académico</h1>
               <p class="subtitle">
-                Visualiza tus exámenes, entregas y eventos importantes.
+                Fechas de exámenes, entregas y recordatorios importantes.
               </p>
             </div>
             <div class="header-actions">
@@ -141,33 +216,20 @@
           </header>
 
           <div class="calendar-controls">
-            <button class="btn btn-secondary btn-sm" id="btnPrevMonth">
-              ◀ Mes Anterior
-            </button>
-            <h2
-              id="currentMonthYearLabel"
-              style="font-size: 1.2rem; font-weight: 600"
-            >
-              Mes Año
-            </h2>
-            <button class="btn btn-secondary btn-sm" id="btnNextMonth">
-              Mes Siguiente ▶
-            </button>
+            <button class="btn-icon" id="prevMonthBtn">&lt;</button>
+            <h2 id="calendarMonthYear">Mes Año</h2>
+            <button class="btn-icon" id="nextMonthBtn">&gt;</button>
+            <button class="btn btn-secondary btn-sm" id="todayBtn">Hoy</button>
           </div>
 
           <div class="calendar-grid-header">
-            <div>Lun</div>
-            <div>Mar</div>
-            <div>Mié</div>
-            <div>Jue</div>
-            <div>Vie</div>
-            <div>Sáb</div>
-            <div>Dom</div>
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span
+            ><span>Vie</span><span>Sáb</span><span>Dom</span>
           </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
+          <div class="calendar-grid" id="calendarDaysGrid"></div>
         </section>
 
-        <!-- ================= 3. HORARIO ================= -->
+        <!-- ================= 3. VISTA HORARIO ================= -->
         <section id="schedule-view" class="view-section">
           <header class="section-header">
             <div>
@@ -177,9 +239,6 @@
               </p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-secondary" id="btnOpenHoursModal">
-                ⚙️ Configurar Horas
-              </button>
               <button class="btn btn-primary" id="btnNewClass">
                 + Añadir Asignatura
               </button>
@@ -188,7 +247,7 @@
 
           <div class="timetable-container">
             <div class="timetable-grid" id="timetableGrid">
-              <!-- Renderizado dinámico -->
+              <!-- Renderizado dinámico desde app.js -->
             </div>
           </div>
         </section>
@@ -196,6 +255,7 @@
     </div>
 
     <!-- ================= MODALES ================= -->
+
     <!-- Modal Tarea -->
     <div class="modal" id="taskModal">
       <div class="modal-content">
@@ -203,34 +263,30 @@
         <form id="taskForm">
           <input type="hidden" id="taskId" />
           <div class="form-group">
-            <label for="taskTitleInput">Título de la tarea:</label>
+            <label for="taskTitle">Título de la tarea:</label>
             <input
               type="text"
-              id="taskTitleInput"
+              id="taskTitle"
               required
-              placeholder="Ej: Estudiar capítulo 1"
+              placeholder="Ej: Implementar base de datos..."
             />
           </div>
           <div class="form-group">
-            <label for="taskProjectSelect">Proyecto:</label>
-            <select id="taskProjectSelect"></select>
+            <label for="taskProject">Proyecto / Asignatura:</label>
+            <select id="taskProject" required></select>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="taskPrioritySelect">Prioridad:</label>
-              <select id="taskPrioritySelect">
+              <label for="taskPriority">Prioridad:</label>
+              <select id="taskPriority">
                 <option value="baja">Baja</option>
                 <option value="media" selected>Media</option>
                 <option value="alta">Alta</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="taskStatusSelect">Estado:</label>
-              <select id="taskStatusSelect">
-                <option value="todo">Por hacer</option>
-                <option value="progress">En curso</option>
-                <option value="done">Completado</option>
-              </select>
+              <label for="taskDueDate">Fecha límite:</label>
+              <input type="date" id="taskDueDate" />
             </div>
           </div>
           <div class="modal-buttons">
@@ -241,82 +297,127 @@
             >
               Cancelar
             </button>
-            <button type="submit" class="btn btn-primary">Guardar Tarea</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Modal Configurar Horas del Horario -->
-    <div class="modal" id="timetableHoursModal">
+    <!-- Modal Proyecto -->
+    <div class="modal" id="projectModal">
       <div class="modal-content">
-        <h3>Configurar Franjas Horarias</h3>
-        <p class="subtitle" style="margin-bottom: 14px">
-          Introduce las horas que deseas mostrar en tu horario separadas por
-          comas.
-        </p>
-        <form id="timetableHoursForm">
+        <h3>Gestión de Proyectos</h3>
+        <form id="projectForm">
+          <h4 class="modal-subtitle">Crear Nuevo Proyecto</h4>
           <div class="form-group">
-            <label for="timetableHoursInput">Horas del día:</label>
+            <label for="projectName">Nombre del Proyecto:</label>
             <input
               type="text"
-              id="timetableHoursInput"
+              id="projectName"
               required
-              placeholder="Ej: 08:00, 09:00, 10:00, 11:00, 12:00"
+              placeholder="Ej: Práctica Final Redes"
             />
           </div>
-          <div class="modal-buttons">
+          <div class="form-group">
+            <label for="projectColor">Color identificador:</label>
+            <input type="color" id="projectColor" value="#4f46e5" />
+          </div>
+          <div class="modal-buttons modal-buttons-compact">
             <button
               type="button"
               class="btn btn-secondary"
-              onclick="closeModal('timetableHoursModal')"
+              onclick="closeModal('projectModal')"
             >
-              Cancelar
+              Cerrar
             </button>
-            <button type="submit" class="btn btn-primary">Guardar Horas</button>
+            <button type="submit" class="btn btn-primary">
+              + Crear Proyecto
+            </button>
           </div>
         </form>
+
+        <div class="existing-projects-section">
+          <h4 class="modal-subtitle">Proyectos Existentes</h4>
+          <div id="projectListModal" class="project-list-modal">
+            <!-- Cargado dinámicamente con opción de eliminar -->
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Modal Gestión de Proyectos -->
-    <div class="modal" id="projectsModal">
-      <div class="modal-content">
-        <h3>Gestionar Proyectos</h3>
-        <form id="projectForm">
-          <div class="form-row-quick">
-            <input
-              type="text"
-              id="newProjectName"
-              placeholder="Nombre del proyecto"
-              required
-            />
-            <input
-              type="color"
-              id="newProjectColor"
-              value="#4C9DB0"
-              style="
-                width: 45px;
-                height: 38px;
-                border: 1px solid var(--border-color);
-                border-radius: var(--radius-sm);
-                cursor: pointer;
-                background: none;
-                padding: 2px;
-              "
-            />
-            <button type="submit" class="btn btn-primary btn-sm">Añadir</button>
+    <!-- Modal Detalles del Día -->
+    <div class="modal" id="dayDetailsModal">
+      <div class="modal-content day-modal-content">
+        <div class="day-modal-header">
+          <div>
+            <h3 id="dayModalDateTitle">Detalles del Día</h3>
+            <p class="subtitle" id="dayModalDateSubtitle">
+              Resumen de clases y eventos
+            </p>
           </div>
-        </form>
-        <div class="existing-projects-section">
-          <p class="modal-subtitle">Proyectos existentes:</p>
-          <div class="project-list-modal" id="projectListModal"></div>
+          <button
+            type="button"
+            class="btn-close-icon"
+            onclick="closeModal('dayDetailsModal')"
+            title="Cerrar"
+          >
+            &times;
+          </button>
         </div>
-        <div class="modal-buttons">
+
+        <!-- 1. Vista previa del Horario de Clases -->
+        <div class="day-section">
+          <div class="day-section-title">
+            <span>🕒 Horario de Clases</span>
+            <span class="badge" id="dayClassesCountBadge">0 clases</span>
+          </div>
+          <div id="dayClassesList" class="day-classes-list">
+            <!-- Renderizado dinámico de las clases del día -->
+          </div>
+        </div>
+
+        <!-- 2. Eventos del Día -->
+        <div class="day-section">
+          <div class="day-section-title">
+            <span>📌 Eventos y Entregas</span>
+            <span class="badge" id="dayEventsCountBadge">0 eventos</span>
+          </div>
+          <div id="dayEventsList" class="day-events-list">
+            <!-- Renderizado dinámico de los eventos del día -->
+          </div>
+        </div>
+
+        <!-- 3. Formulario Rápido para Añadir Evento -->
+        <div class="day-section day-add-event-section">
+          <div class="day-section-title">
+            <span>➕ Añadir Evento a este día</span>
+          </div>
+          <form id="dayQuickEventForm" class="day-quick-event-form">
+            <input type="hidden" id="dayQuickEventDate" />
+            <div class="form-row-quick">
+              <input
+                type="text"
+                id="dayQuickEventTitle"
+                required
+                placeholder="Nombre del evento o entrega..."
+              />
+              <select id="dayQuickEventType">
+                <option value="examen">Examen</option>
+                <option value="proyecto">Entrega Proyecto</option>
+                <option value="otro">Otro</option>
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm">
+                + Añadir
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 16px">
           <button
             type="button"
             class="btn btn-secondary"
-            onclick="closeModal('projectsModal')"
+            onclick="closeModal('dayDetailsModal')"
           >
             Cerrar
           </button>
@@ -324,101 +425,31 @@
       </div>
     </div>
 
-    <!-- Modal Asignatura Horario -->
-    <div class="modal" id="classModal">
-      <div class="modal-content">
-        <h3>Añadir Asignatura al Horario</h3>
-        <form id="classForm">
-          <div class="form-group">
-            <label for="classNameInput">Nombre de la Asignatura:</label>
-            <input
-              type="text"
-              id="classNameInput"
-              required
-              placeholder="Ej: Matemáticas"
-            />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="classDaySelect">Día:</label>
-              <select id="classDaySelect">
-                <option value="1">Lunes</option>
-                <option value="2">Martes</option>
-                <option value="3">Miércoles</option>
-                <option value="4">Jueves</option>
-                <option value="5">Viernes</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="classTimeSelect">Hora:</label>
-              <select id="classTimeSelect"></select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="classRoomInput">Aula / Ubicación:</label>
-              <input
-                type="text"
-                id="classRoomInput"
-                placeholder="Ej: Aula 102"
-              />
-            </div>
-            <div class="form-group">
-              <label for="classColorInput">Color distintivo:</label>
-              <input
-                type="color"
-                id="classColorInput"
-                value="#4C9DB0"
-                style="
-                  width: 100%;
-                  height: 38px;
-                  border: 1px solid var(--border-color);
-                  border-radius: var(--radius-sm);
-                  cursor: pointer;
-                  background: none;
-                  padding: 2px;
-                "
-              />
-            </div>
-          </div>
-          <div class="modal-buttons">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="closeModal('classModal')"
-            >
-              Cancelar
-            </button>
-            <button type="submit" class="btn btn-primary">Añadir Clase</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal Evento Calendario -->
+    <!-- Modal Evento de Calendario -->
     <div class="modal" id="eventModal">
       <div class="modal-content">
-        <h3>Añadir Evento al Calendario</h3>
+        <h3 id="eventModalTitle">Nuevo Evento</h3>
         <form id="eventForm">
+          <input type="hidden" id="eventId" />
           <div class="form-group">
-            <label for="eventTitleInput">Título del Evento:</label>
+            <label for="eventTitle">Nombre del evento:</label>
             <input
               type="text"
-              id="eventTitleInput"
+              id="eventTitle"
               required
-              placeholder="Ej: Examen Parcial"
+              placeholder="Ej: Examen Parcial de Álgebra"
             />
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="eventDateInput">Fecha:</label>
-              <input type="date" id="eventDateInput" required />
+              <label for="eventDate">Fecha:</label>
+              <input type="date" id="eventDate" required />
             </div>
             <div class="form-group">
-              <label for="eventTypeSelect">Tipo:</label>
-              <select id="eventTypeSelect">
+              <label for="eventType">Tipo:</label>
+              <select id="eventType">
                 <option value="examen">Examen</option>
-                <option value="proyecto">Proyecto</option>
+                <option value="proyecto">Entrega Proyecto</option>
                 <option value="otro">Otro</option>
               </select>
             </div>
@@ -439,136 +470,175 @@
       </div>
     </div>
 
-    <!-- Modal Detalles del Día -->
-    <div class="modal" id="dayDetailModal">
-      <div class="modal-content day-modal-content">
-        <div class="day-modal-header">
-          <div>
-            <h3 id="dayModalTitle">Detalles del Día</h3>
-            <p class="subtitle" id="dayModalDateSubtitle">Fecha seleccionada</p>
+    <!-- Modal Clase Horario -->
+    <div class="modal" id="classModal">
+      <div class="modal-content">
+        <h3>Añadir Asignatura al Horario</h3>
+        <form id="classForm">
+          <input type="hidden" id="classId" />
+          <div class="form-group">
+            <label for="className">Asignatura:</label>
+            <input
+              type="text"
+              id="className"
+              required
+              placeholder="Ej: Algoritmos y Estructuras"
+            />
           </div>
-          <button class="btn-close-icon" onclick="closeModal('dayDetailModal')">
-            &times;
-          </button>
-        </div>
-        <div class="day-section">
-          <div class="day-section-title"><span>Clases del día</span></div>
-          <div class="day-classes-list" id="dayModalClassesList"></div>
-        </div>
-        <div class="day-section">
-          <div class="day-section-title"><span>Eventos y Entregas</span></div>
-          <div class="day-events-list" id="dayModalEventsList"></div>
-        </div>
-        <div class="day-add-event-section">
-          <div class="day-section-title">
-            <span>+ Añadir evento rápido en este día</span>
-          </div>
-          <form id="dayQuickEventForm">
-            <input type="hidden" id="dayQuickEventDate" />
-            <div class="form-row-quick">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classRoom">Aula / Lugar:</label>
               <input
                 type="text"
-                id="dayQuickEventTitle"
-                placeholder="Título del evento..."
-                required
+                id="classRoom"
+                placeholder="Ej: Aula 2.3 / Lab 1"
               />
-              <select id="dayQuickEventType">
-                <option value="examen">Examen</option>
-                <option value="proyecto">Proyecto</option>
-                <option value="otro">Otro</option>
-              </select>
-              <button type="submit" class="btn btn-primary btn-sm">
-                Añadir
-              </button>
             </div>
-          </form>
-        </div>
-        <div class="modal-buttons modal-buttons-compact">
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            onclick="closeModal('dayDetailModal')"
-          >
-            Cerrar
-          </button>
-        </div>
+            <div class="form-group">
+              <label for="classDay">Día:</label>
+              <select id="classDay" required>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classStartTime">Hora Inicio:</label>
+              <input type="time" id="classStartTime" required value="09:00" />
+            </div>
+            <div class="form-group">
+              <label for="classEndTime">Hora Fin:</label>
+              <input type="time" id="classEndTime" required value="11:00" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="classColor">Color de tarjeta:</label>
+            <input type="color" id="classColor" value="#0284c7" />
+          </div>
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('classModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">Guardar Clase</button>
+          </div>
+        </form>
       </div>
     </div>
 
     <!-- Modal Autenticación -->
     <div class="modal" id="authModal">
       <div class="modal-content auth-modal-content">
-        <h3>Cuenta y Sincronización</h3>
-        <div class="auth-body">
-          <div class="auth-error" id="authErrorMsg" style="display: none"></div>
-          <div class="auth-logged-out-view" id="authLoggedOutView">
-            <p class="subtitle" style="margin-bottom: 8px">
-              Inicia sesión con Google para sincronizar tus tareas y horarios en
-              la nube de forma automática.
+        <div class="day-modal-header">
+          <div>
+            <h3 id="authModalTitle">Iniciar Sesión</h3>
+            <p class="subtitle">
+              Sincroniza tus datos en la nube en todos tus dispositivos
             </p>
-            <button class="btn btn-google btn-block" id="btnLoginGoogle">
-              <svg
-                class="google-icon"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="#4285F4"
-                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.18 21.3 7.22 24 12 24z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.6H1.19C.43 8.15 0 9.89 0 12s.43 3.85 1.19 5.4l4.08-3.16z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.22 0 3.18 2.7 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"
-                />
-              </svg>
-              Continuar con Google
-            </button>
           </div>
-          <div
-            class="auth-logged-in-view"
-            id="authLoggedInView"
-            style="display: none"
-          >
-            <div class="user-profile-card" style="margin-bottom: 0">
-              <div class="user-info-row">
-                <div class="user-avatar" id="userAvatarContainer">
-                  <span id="userAvatarText">U</span>
-                </div>
-                <div class="user-details">
-                  <span class="user-name" id="userNameLabel">Usuario</span>
-                  <span class="user-email" id="userEmailLabel"
-                    >correo@domain.com</span
-                  >
-                </div>
-              </div>
-            </div>
-            <button class="btn btn-secondary btn-sm btn-logout" id="btnLogout">
-              Cerrar Sesión
-            </button>
-          </div>
-        </div>
-        <div class="modal-buttons modal-buttons-compact">
           <button
             type="button"
-            class="btn btn-secondary btn-sm"
+            class="btn-close-icon"
             onclick="closeModal('authModal')"
+            title="Cerrar"
           >
-            Cerrar
+            &times;
           </button>
+        </div>
+
+        <div class="auth-body">
+          <!-- Botón Google Sign In -->
+          <button
+            type="button"
+            class="btn btn-google btn-block"
+            id="btnGoogleSignIn"
+          >
+            <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            Continuar con Google
+          </button>
+
+          <div class="auth-divider">
+            <span>o con correo electrónico</span>
+          </div>
+
+          <form id="authEmailForm">
+            <div
+              id="authErrorMessage"
+              class="auth-error"
+              style="display: none"
+            ></div>
+
+            <div class="form-group">
+              <label for="authEmail">Correo electrónico:</label>
+              <input
+                type="email"
+                id="authEmail"
+                required
+                placeholder="tu@email.com"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="authPassword">Contraseña:</label>
+              <input
+                type="password"
+                id="authPassword"
+                required
+                minlength="6"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+
+            <div
+              class="modal-buttons"
+              style="
+                margin-top: 18px;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <button
+                type="button"
+                class="btn-text-link"
+                id="btnToggleAuthMode"
+              >
+                ¿No tienes cuenta? Regístrate
+              </button>
+              <button type="submit" class="btn btn-primary" id="btnAuthSubmit">
+                Iniciar Sesión
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
 
-    <!-- Scripts de la app -->
-    <script type="module" src="app.js"></script>
+    <!-- Integración Firebase (Módulo) y Lógica de la App -->
+    <script type="module" src="firebase-service.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

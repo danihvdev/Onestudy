@@ -1,11 +1,11 @@
 :root {
   --bg-app: #ffebaf;
   --bg-surface: #ffffff;
-  --bg-sidebar: #4C9DB0;
+  --bg-sidebar: #4c9db0;
   --text-sidebar: #ffffff;
-  --text-primary: #4C9DB0;
+  --text-primary: #4c9db0;
   --text-secondary: #000000;
-  --primary: #4C9DB0;
+  --primary: #4c9db0;
   --primary-hover: #004675;
   --accent-green: #10b981;
   --accent-orange: #f59e0b;
@@ -1140,4 +1140,56 @@ body {
   color: var(--primary-hover);
 }
 
+/* ================= ADAPTACIÓN MÓVIL (RESPONSIVE) ================= */
 
+/* En pantallas medianas y pequeños (móviles y tablets) */
+@media (max-width: 768px) {
+  /* Apilar el contenedor principal verticalmente (sidebar arriba, contenido abajo) */
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Hacer el sidebar de ancho completo */
+  .sidebar {
+    width: 100%;
+    height: auto;
+  }
+
+  /* Ajustar los paddings del contenido principal para aprovechar la pantalla */
+  .main-content {
+    padding: 16px;
+  }
+
+  /* El tablero Kanban pasa de 3 columnas a 1 sola columna vertical */
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+
+  /* El banner de proyectos se reorganiza para no solaparse */
+  .project-selector-banner {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .active-project-progress {
+    width: 100%;
+  }
+
+  /* Permitir scroll horizontal suave en tablas o vistas anchas como el horario */
+  .timetable-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Asegurar que los modales no toquen los bordes de la pantalla del móvil */
+  .modal {
+    padding: 12px;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 18px;
+  }
+}
