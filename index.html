@@ -239,6 +239,10 @@
               </p>
             </div>
             <div class="header-actions">
+              <!-- NUEVO BOTÓN AÑADIDO AQUÍ -->
+              <button class="btn btn-secondary" id="btnMultiClass">
+                + Asignatura Múltiple
+              </button>
               <button class="btn btn-primary" id="btnNewClass">
                 + Añadir Asignatura
               </button>
@@ -528,6 +532,71 @@
               Cancelar
             </button>
             <button type="submit" class="btn btn-primary">Guardar Clase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- NUEVO: Modal Asignatura Múltiple -->
+    <div class="modal" id="multiClassModal">
+      <div class="modal-content" style="max-width: 500px">
+        <h3>Añadir Asignatura en Varios Días</h3>
+        <form id="multiClassForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="multiClassName">Nombre de la Asignatura:</label>
+              <input
+                type="text"
+                id="multiClassName"
+                required
+                placeholder="Ej: Física"
+              />
+            </div>
+            <div class="form-group">
+              <label for="multiClassColor">Color:</label>
+              <input
+                type="color"
+                id="multiClassColor"
+                value="#4C9DB0"
+                style="
+                  width: 100%;
+                  height: 38px;
+                  border: 1px solid var(--border-color);
+                  border-radius: var(--radius-sm);
+                  cursor: pointer;
+                  background: none;
+                  padding: 2px;
+                "
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Configura los días y sus horas:</label>
+            <div
+              id="multiClassRowsContainer"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 6px;
+              "
+            >
+              <!-- Se inyectarán dinámicamente filas para Lunes, Martes, etc. -->
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('multiClassModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Guardar Asignatura
+            </button>
           </div>
         </form>
       </div>
