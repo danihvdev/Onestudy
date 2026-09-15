@@ -1176,3 +1176,21 @@ body {
     padding: 18px;
   }
 }
+
+/* ================= IGUALAR TAMAÑO DE TARJETAS EN HORARIO ================= */
+
+/* Asegurar que la celda del horario actúe como un contenedor flexible vertical */
+.day-column-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Espacio entre tarjetas si hay más de una en la misma hora */
+}
+
+/* Hacer que cada tarjeta de clase ocupe todo el alto disponible en su contenedor */
+.day-column-slots .class-card {
+  flex: 1; /* Esto estira las tarjetas más pequeñas para que midan lo mismo que la más grande */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Distribuye el contenido uniformemente si es necesario */
+  box-sizing: border-box;
+}
