@@ -1,4 +1,4 @@
-# CampusFlow - Organizador Académico 🎓
+# OneStudy - Organizador Académico 🎓
 
 Aplicación web moderna para la organización y seguimiento de proyectos académicos, tareas (Kanban), exámenes, entregas y horarios de clase.
 
@@ -8,3 +8,4 @@ Aplicación web moderna para la organización y seguimiento de proyectos académ
 - **Calendario Académico**: Vista mensual interactiva de exámenes y entregas con ventana de detalles del día y vista previa de clases.
 - **Horario de Clases**: Planificación semanal con código de colores, aulas y horas.
 - **Persistencia**: Almacenamiento local con opción de exportación en JSON.
+- **Nube**: Almacenamiento de datos en la nube mediante cuenta de google o correo electrónico
