@@ -239,9 +239,12 @@
               </p>
             </div>
             <div class="header-actions">
-              <!-- NUEVO BOTÓN AÑADIDO AQUÍ -->
-              <button class="btn btn-secondary" id="btnMultiClass">
-                + Asignatura Múltiple
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnNewMultiClass"
+              >
+                📅 Asignatura Múltiple
               </button>
               <button class="btn btn-primary" id="btnNewClass">
                 + Añadir Asignatura
@@ -537,7 +540,7 @@
       </div>
     </div>
 
-    <!-- NUEVO: Modal Asignatura Múltiple -->
+    <!-- Modal Asignatura Múltiple -->
     <div class="modal" id="multiClassModal">
       <div class="modal-content" style="max-width: 500px">
         <h3>Añadir Asignatura en Varios Días</h3>
@@ -582,7 +585,7 @@
                 margin-top: 6px;
               "
             >
-              <!-- Se inyectarán dinámicamente filas para Lunes, Martes, etc. -->
+              <!-- Filas inyectadas dinámicamente -->
             </div>
           </div>
 

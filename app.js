@@ -802,38 +802,40 @@ function setupModals() {
     const btnNewMultiClass = document.getElementById("btnNewMultiClass");
     if (btnNewMultiClass) {
       btnNewMultiClass.addEventListener("click", () => {
-        document.getElementById("multiClassForm").reset();
+        const form = document.getElementById("multiClassForm");
+        if (form) form.reset();
 
-        // Generar filas dinámicas para cada día de la semana (Lunes a Viernes)
         const container = document.getElementById("multiClassRowsContainer");
-        container.innerHTML = "";
+        if (container) {
+          container.innerHTML = "";
 
-        const days = [
-          { id: 1, name: "Lunes" },
-          { id: 2, name: "Martes" },
-          { id: 3, name: "Miércoles" },
-          { id: 4, name: "Jueves" },
-          { id: 5, name: "Viernes" },
-        ];
+          const days = [
+            { id: 1, name: "Lunes" },
+            { id: 2, name: "Martes" },
+            { id: 3, name: "Miércoles" },
+            { id: 4, name: "Jueves" },
+            { id: 5, name: "Viernes" },
+          ];
 
-        days.forEach((day) => {
-          const rowDiv = document.createElement("div");
-          rowDiv.style.cssText =
-            "display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 8px; border-radius: var(--radius-sm);";
-          rowDiv.innerHTML = `
-          <label style="min-width: 90px; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" class="multi-day-checkbox" value="${day.id}" style="cursor: pointer;">
-            ${day.name}
-          </label>
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-            <input type="time" class="multi-start-time" value="09:00" style="padding: 4px; font-size: 0.85rem;">
-            <span>-</span>
-            <input type="time" class="multi-end-time" value="10:00" style="padding: 4px; font-size: 0.85rem;">
-            <input type="text" class="multi-room" placeholder="Aula (opc.)" style="padding: 4px 8px; font-size: 0.85rem; flex: 1;">
-          </div>
-        `;
-          container.appendChild(rowDiv);
-        });
+          days.forEach((day) => {
+            const rowDiv = document.createElement("div");
+            rowDiv.style.cssText =
+              "display: flex; align-items: center; gap: 10px; background: var(--bg-app); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);";
+            rowDiv.innerHTML = `
+            <label style="min-width: 90px; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" class="multi-day-checkbox" value="${day.id}" style="cursor: pointer;">
+              ${day.name}
+            </label>
+            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+              <input type="time" class="multi-start-time" value="09:00" style="padding: 4px; font-size: 0.85rem;">
+              <span>-</span>
+              <input type="time" class="multi-end-time" value="10:00" style="padding: 4px; font-size: 0.85rem;">
+              <input type="text" class="multi-room" placeholder="Aula" style="padding: 4px 8px; font-size: 0.85rem; flex: 1;">
+            </div>
+          `;
+            container.appendChild(rowDiv);
+          });
+        }
 
         openModal("multiClassModal");
       });
