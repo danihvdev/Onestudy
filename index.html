@@ -239,6 +239,10 @@
               </p>
             </div>
             <div class="header-actions">
+              <!-- NUEVO BOTÓN AÑADIDO AQUÍ -->
+              <button class="btn btn-secondary" id="btnMultiClass">
+                + Asignatura Múltiple
+              </button>
               <button class="btn btn-primary" id="btnNewClass">
                 + Añadir Asignatura
               </button>
@@ -252,222 +256,6 @@
           </div>
         </section>
       </main>
-    </div>
-
-    <!-- ================= MODALES ================= -->
-
-    <!-- Modal Tarea -->
-    <div class="modal" id="taskModal">
-      <div class="modal-content">
-        <h3 id="taskModalTitle">Nueva Tarea</h3>
-        <form id="taskForm">
-          <input type="hidden" id="taskId" />
-          <div class="form-group">
-            <label for="taskTitle">Título de la tarea:</label>
-            <input
-              type="text"
-              id="taskTitle"
-              required
-              placeholder="Ej: Implementar base de datos..."
-            />
-          </div>
-          <div class="form-group">
-            <label for="taskProject">Proyecto / Asignatura:</label>
-            <select id="taskProject" required></select>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="taskPriority">Prioridad:</label>
-              <select id="taskPriority">
-                <option value="baja">Baja</option>
-                <option value="media" selected>Media</option>
-                <option value="alta">Alta</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="taskDueDate">Fecha límite:</label>
-              <input type="date" id="taskDueDate" />
-            </div>
-          </div>
-          <div class="modal-buttons">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="closeModal('taskModal')"
-            >
-              Cancelar
-            </button>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal Proyecto -->
-    <div class="modal" id="projectModal">
-      <div class="modal-content">
-        <h3>Gestión de Proyectos</h3>
-        <form id="projectForm">
-          <h4 class="modal-subtitle">Crear Nuevo Proyecto</h4>
-          <div class="form-group">
-            <label for="projectName">Nombre del Proyecto:</label>
-            <input
-              type="text"
-              id="projectName"
-              required
-              placeholder="Ej: Práctica Final Redes"
-            />
-          </div>
-          <div class="form-group">
-            <label for="projectColor">Color identificador:</label>
-            <input type="color" id="projectColor" value="#4f46e5" />
-          </div>
-          <div class="modal-buttons modal-buttons-compact">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="closeModal('projectModal')"
-            >
-              Cerrar
-            </button>
-            <button type="submit" class="btn btn-primary">
-              + Crear Proyecto
-            </button>
-          </div>
-        </form>
-
-        <div class="existing-projects-section">
-          <h4 class="modal-subtitle">Proyectos Existentes</h4>
-          <div id="projectListModal" class="project-list-modal">
-            <!-- Cargado dinámicamente con opción de eliminar -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Detalles del Día -->
-    <div class="modal" id="dayDetailsModal">
-      <div class="modal-content day-modal-content">
-        <div class="day-modal-header">
-          <div>
-            <h3 id="dayModalDateTitle">Detalles del Día</h3>
-            <p class="subtitle" id="dayModalDateSubtitle">
-              Resumen de clases y eventos
-            </p>
-          </div>
-          <button
-            type="button"
-            class="btn-close-icon"
-            onclick="closeModal('dayDetailsModal')"
-            title="Cerrar"
-          >
-            &times;
-          </button>
-        </div>
-
-        <!-- 1. Vista previa del Horario de Clases -->
-        <div class="day-section">
-          <div class="day-section-title">
-            <span>🕒 Horario de Clases</span>
-            <span class="badge" id="dayClassesCountBadge">0 clases</span>
-          </div>
-          <div id="dayClassesList" class="day-classes-list">
-            <!-- Renderizado dinámico de las clases del día -->
-          </div>
-        </div>
-
-        <!-- 2. Eventos del Día -->
-        <div class="day-section">
-          <div class="day-section-title">
-            <span>📌 Eventos y Entregas</span>
-            <span class="badge" id="dayEventsCountBadge">0 eventos</span>
-          </div>
-          <div id="dayEventsList" class="day-events-list">
-            <!-- Renderizado dinámico de los eventos del día -->
-          </div>
-        </div>
-
-        <!-- 3. Formulario Rápido para Añadir Evento -->
-        <div class="day-section day-add-event-section">
-          <div class="day-section-title">
-            <span>➕ Añadir Evento a este día</span>
-          </div>
-          <form id="dayQuickEventForm" class="day-quick-event-form">
-            <input type="hidden" id="dayQuickEventDate" />
-            <div class="form-row-quick">
-              <input
-                type="text"
-                id="dayQuickEventTitle"
-                required
-                placeholder="Nombre del evento o entrega..."
-              />
-              <select id="dayQuickEventType">
-                <option value="examen">Examen</option>
-                <option value="proyecto">Entrega Proyecto</option>
-                <option value="otro">Otro</option>
-              </select>
-              <button type="submit" class="btn btn-primary btn-sm">
-                + Añadir
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div class="modal-buttons" style="margin-top: 16px">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            onclick="closeModal('dayDetailsModal')"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Evento de Calendario -->
-    <div class="modal" id="eventModal">
-      <div class="modal-content">
-        <h3 id="eventModalTitle">Nuevo Evento</h3>
-        <form id="eventForm">
-          <input type="hidden" id="eventId" />
-          <div class="form-group">
-            <label for="eventTitle">Nombre del evento:</label>
-            <input
-              type="text"
-              id="eventTitle"
-              required
-              placeholder="Ej: Examen Parcial de Álgebra"
-            />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="eventDate">Fecha:</label>
-              <input type="date" id="eventDate" required />
-            </div>
-            <div class="form-group">
-              <label for="eventType">Tipo:</label>
-              <select id="eventType">
-                <option value="examen">Examen</option>
-                <option value="proyecto">Entrega Proyecto</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-          </div>
-          <div class="modal-buttons">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              onclick="closeModal('eventModal')"
-            >
-              Cancelar
-            </button>
-            <button type="submit" class="btn btn-primary">
-              Guardar Evento
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
 
     <!-- Modal Clase Horario -->
@@ -528,6 +316,71 @@
               Cancelar
             </button>
             <button type="submit" class="btn btn-primary">Guardar Clase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- NUEVO: Modal Asignatura Múltiple -->
+    <div class="modal" id="multiClassModal">
+      <div class="modal-content" style="max-width: 500px">
+        <h3>Añadir Asignatura en Varios Días</h3>
+        <form id="multiClassForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="multiClassName">Nombre de la Asignatura:</label>
+              <input
+                type="text"
+                id="multiClassName"
+                required
+                placeholder="Ej: Física"
+              />
+            </div>
+            <div class="form-group">
+              <label for="multiClassColor">Color:</label>
+              <input
+                type="color"
+                id="multiClassColor"
+                value="#4C9DB0"
+                style="
+                  width: 100%;
+                  height: 38px;
+                  border: 1px solid var(--border-color);
+                  border-radius: var(--radius-sm);
+                  cursor: pointer;
+                  background: none;
+                  padding: 2px;
+                "
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Configura los días y sus horas:</label>
+            <div
+              id="multiClassRowsContainer"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 6px;
+              "
+            >
+              <!-- Se inyectarán dinámicamente filas para Lunes, Martes, etc. -->
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal('multiClassModal')"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Guardar Asignatura
+            </button>
           </div>
         </form>
       </div>
