@@ -38,6 +38,7 @@ function snapshotState(state) {
       tasks: state.tasks || [],
       events: state.events || [],
       classes: state.classes || [],
+      settings: state.settings || { reminderDays: 1 },
     }),
   );
 }
@@ -161,6 +162,7 @@ onAuthStateChanged(auth, async (user) => {
         tasks: localData.tasks || [],
         events: localData.events || [],
         classes: localData.classes || [],
+        settings: localData.settings || { reminderDays: 1 },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -196,6 +198,7 @@ function applyCloudDataToApp(data) {
       tasks: data.tasks || [],
       events: data.events || [],
       classes: data.classes || [],
+      settings: data.settings || { reminderDays: 1 },
     });
   }
   isApplyingRemoteUpdate = false;

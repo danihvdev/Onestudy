@@ -9,6 +9,7 @@ const AppState = {
   tasks: [],
   events: [],
   classes: [],
+  settings: { reminderDays: 1 },
   currentMonth: new Date().getMonth(),
   currentYear: new Date().getFullYear(),
   filterProject: "all",
@@ -117,6 +118,7 @@ function persistLocalCopy() {
       tasks: AppState.tasks,
       events: AppState.events,
       classes: AppState.classes,
+      settings: AppState.settings,
     }),
   );
 }
@@ -131,6 +133,7 @@ function loadData(options = {}) {
       AppState.tasks = parsed.tasks || [];
       AppState.events = parsed.events || [];
       AppState.classes = parsed.classes || [];
+      AppState.settings = parsed.settings || { reminderDays: 1 };
       return;
     } catch (e) {
       console.error("Error al cargar datos:", e);
@@ -142,6 +145,7 @@ function loadData(options = {}) {
     AppState.tasks = [];
     AppState.events = [];
     AppState.classes = [];
+    AppState.settings = { reminderDays: 1 };
     return;
   }
 
@@ -149,6 +153,7 @@ function loadData(options = {}) {
   AppState.tasks = defaultInitialData.tasks;
   AppState.events = defaultInitialData.events;
   AppState.classes = defaultInitialData.classes;
+  AppState.settings = { reminderDays: 1 };
   saveData();
 }
 
@@ -166,6 +171,7 @@ window.getCurrentAppState = function () {
     tasks: AppState.tasks,
     events: AppState.events,
     classes: AppState.classes,
+    settings: AppState.settings,
   };
 };
 
@@ -175,6 +181,7 @@ window.loadExternalDataIntoApp = function (cloudData) {
   AppState.tasks = cloudData.tasks || [];
   AppState.events = cloudData.events || [];
   AppState.classes = cloudData.classes || [];
+  AppState.settings = cloudData.settings || { reminderDays: 1 };
   persistLocalCopy();
 
   if (typeof setupProjectFilter === "function") {
@@ -937,6 +944,24 @@ function setupModals() {
     renderKanban();
     renderProgress();
     closeModal("taskModal");
+  });
+
+  // Modal Configuración
+  const btnSettings = document.getElementById("btnSettings");
+  if (btnSettings) {
+    btnSettings.addEventListener("click", () => {
+      document.getElementById("reminderDays").value =
+        AppState.settings.reminderDays || 1;
+      openModal("settingsModal");
+    });
+  }
+
+  document.getElementById("settingsForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const days = parseInt(document.getElementById("reminderDays").value, 10);
+    AppState.settings.reminderDays = isNaN(days) ? 1 : days;
+    saveData();
+    closeModal("settingsModal");
   });
 
   // Modal Proyecto

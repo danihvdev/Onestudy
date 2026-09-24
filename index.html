@@ -96,6 +96,9 @@
           <button class="btn-text" id="btnExportData">
             💾 Exportar Backup
           </button>
+          <button class="btn-text" id="btnSettings">
+            ⚙️ Configuración
+          </button>
         </div>
       </aside>
 
@@ -703,6 +706,36 @@
               </button>
               <button type="submit" class="btn btn-primary" id="btnAuthSubmit">
                 Iniciar Sesión
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- Modal de Configuración -->
+      <div class="modal" id="settingsModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>⚙️ Configuración</h2>
+            <button class="btn-close" onclick="closeModal('settingsModal')">
+              &times;
+            </button>
+          </div>
+          <form id="settingsForm">
+            <div class="form-group">
+              <label for="reminderDays">Recordatorio de Tareas (Días de antelación)</label>
+              <input type="number" id="reminderDays" min="0" max="30" value="1" required />
+              <small>Días antes del vencimiento para enviar un correo (0 para desactivar).</small>
+            </div>
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeModal('settingsModal')"
+              >
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Guardar Configuración
               </button>
             </div>
           </form>
